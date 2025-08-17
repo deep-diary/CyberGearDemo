@@ -1,0 +1,100 @@
+# STM32项目编译输出文件
+# Keil MDK-ARM 编译文件
+*.o
+*.d
+*.hex
+*.bin
+*.axf
+*.map
+*.lst
+*.lnp
+*.htm
+*.dep
+*.iex
+*.scvd
+*.s
+
+# 项目配置文件（个人设置）
+*.uvguix.*
+*.uvoptx
+*.uvprojx
+*.uvproj
+*.uvmpw
+*.uvguix
+*.uvopt
+*.uvproj
+
+# 日志文件
+*.log
+*.build_log.htm
+
+# 备份文件
+*.bak
+*.backup
+*.old
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.workspace
+*.project
+.settings/
+.mxproject
+.extSettings
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编译目录（可选，如果不想忽略整个目录）
+# MDK-ARM/CyberGearDemo/
+
+# 其他可能的编译输出
+*.elf
+*.a
+*.lib
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 调试文件
+*.dbg
+*.debug
+*.pdb
+
+# 覆盖率文件
+*.gcov
+*.gcda
+*.gcno
+
+# 内存映射文件
+*.mmap
+*.mem
+
+# 反汇编文件
+*.dis
+*.asm
+
+# 符号表文件
+*.sym
+
+# 链接脚本
+*.ld
+*.lds
+
+# 启动文件
+startup_*.s
+startup_*.c
+
+# 自动生成的文件
+*_generated.*
+*_auto.*
