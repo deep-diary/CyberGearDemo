@@ -138,7 +138,7 @@ switch (MC_GetSTMStateMotor1())
   case IDLE:
     if (motorOn) {
     MC_StartMotor1();
-    MC_ProgramPositionCommandMotor1(posRef, 0);
+     //MC_ProgramPositionCommandMotor1(posRef, 0);
    
 
     }
@@ -152,7 +152,7 @@ switch (MC_GetSTMStateMotor1())
 
     if (posRef != prevPosRef ) {
       //PosDuration = ABS(3*(posRef-prevPosRef)/(2*speedMax)) ;
-      MC_ProgramPositionCommandMotor1(posRef, 0);
+      MC_ProgramPositionCommandMotor1(posRef, PosDuration);
       prevPosRef = posRef;
     }
 

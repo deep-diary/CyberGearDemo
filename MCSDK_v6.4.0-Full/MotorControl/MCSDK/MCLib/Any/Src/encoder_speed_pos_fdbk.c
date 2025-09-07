@@ -85,7 +85,7 @@ __weak void ENC_Init(ENCODER_Handle_t *pHandle)
     pHandle->U32MAXdivPulseNumber = UINT32_MAX / ((uint32_t) pHandle->PulseNumber);
     pHandle->SpeedSamplingFreqUnit = ((uint32_t)pHandle->SpeedSamplingFreqHz * (uint32_t)SPEED_UNIT);
 
-    pHandle->zeroAngleOffset = 0;
+    pHandle->zeroAngleOffset = -9681;
 
     //     /* Set IC filter for both channel 1 & 2 */
     //     LL_TIM_IC_SetFilter(TIMx, LL_TIM_CHANNEL_CH1, ((uint32_t)pHandle->ICx_Filter));

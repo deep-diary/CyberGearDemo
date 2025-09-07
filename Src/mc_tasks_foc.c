@@ -373,7 +373,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
             /* USER CODE BEGIN MediumFrequencyTask M1 2 */
 
             /* USER CODE END MediumFrequencyTask M1 2 */
-						//TC_PositionRegulation(pPosCtrl[M1]);
+
             MCI_ExecBufferedCommands(&Mci[M1]);
             if (mode != MCM_OPEN_LOOP_VOLTAGE_MODE && mode != MCM_OPEN_LOOP_CURRENT_MODE)
             {
