@@ -73,6 +73,8 @@ typedef struct
   uint16_t latestCapture;
   // uint16_t originalCapture;
   int16_t zeroAngleOffset;
+  uint16_t spiZeroAngleOffset;
+  int8_t direction;
   int32_t wOverallAngleVariation;
   uint8_t SpeedBufferSize;                           /*!< Size of the buffer used to calculate the average
                                                           speed. It must be <= 16.*/

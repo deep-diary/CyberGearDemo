@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mc_app_hooks.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,11 +32,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define FLASH_USER_START_ADDR   ADDR_FLASH_PAGE_63   /* Start @ of user Flash area */
-#define FLASH_USER_END_ADDR     (ADDR_FLASH_PAGE_63 + FLASH_PAGE_SIZE - 1)   /* End @ of user Flash area */
+// #define FLASH_USER_START_ADDR   ADDR_FLASH_PAGE_63   /* Start @ of user Flash area */
+// #define FLASH_USER_END_ADDR     (ADDR_FLASH_PAGE_63 + FLASH_PAGE_SIZE - 1)   /* End @ of user Flash area */
 
-#define DATA_32                 ((uint32_t)0x12345678)
-#define DATA_64                 ((uint64_t)0x1234567812345678)
+// #define DATA_32                 ((uint32_t)0x12345678)
+// #define DATA_64                 ((uint64_t)0x1234567812345678)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,10 +49,10 @@
 FDCAN_HandleTypeDef hfdcan1;
 
 /* USER CODE BEGIN PV */
-uint32_t FirstPage = 0, NbOfPages = 0;
-uint32_t Address = 0, PageError = 0;
-__IO uint32_t MemoryProgramStatus = 0;
-__IO uint32_t data32 = 0;
+// uint32_t FirstPage = 0, NbOfPages = 0;
+// uint32_t Address = 0, PageError = 0;
+// __IO uint32_t MemoryProgramStatus = 0;
+// __IO uint32_t data32 = 0;
 
 /*Variable used for Erase procedure*/
 static FLASH_EraseInitTypeDef EraseInitStruct;
@@ -75,7 +76,7 @@ static void MX_SPI1_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-static uint32_t GetPage(uint32_t Address);
+// static uint32_t GetPage(uint32_t Address);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -128,8 +129,8 @@ int main(void)
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-
-//   /* Unlock the Flash to enable the flash control register access *************/
+//  __set_PRIMASK(1);   //关闭所有中断
+// //   /* Unlock the Flash to enable the flash control register access *************/
 //   HAL_FLASH_Unlock();
 
 //  /* Clear OPTVERR bit set on virgin samples */
@@ -147,14 +148,14 @@ int main(void)
 //   /* Fill EraseInit structure*/
 //   EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
 //   EraseInitStruct.Page        = FirstPage;
-//   EraseInitStruct.NbPages     = NbOfPages;
+//   EraseInitStruct.NbPages     = 1;
 
 //   /* Note: If an erase operation in Flash memory also concerns data in the data or instruction cache,
 //      you have to make sure that these data are rewritten before they are accessed during code
 //      execution. If this cannot be done safely, it is recommended to flush the caches by setting the
 //      DCRST and ICRST bits in the FLASH_CR register. */
-//  // if (HAL_FLASHEx_Erase(&EraseInitStruct, &PageError) != HAL_OK)
-//  // {
+//   if (HAL_FLASHEx_Erase(&EraseInitStruct, &PageError) != HAL_OK)
+//   {
 //     /*
 //       Error occurred while page erase.
 //       User can add here some code to deal with this error.
@@ -163,7 +164,7 @@ int main(void)
 //     */
 //     /* Infinite loop */
 
-//  // }
+//   }
 
 //   /* Program the user Flash area word by word
 //     (area defined by FLASH_USER_START_ADDR and FLASH_USER_END_ADDR) ***********/
@@ -186,7 +187,7 @@ int main(void)
 //   /* Lock the Flash to disable the flash control register access (recommended
 //      to protect the FLASH memory against possible unwanted operation) *********/
 //   HAL_FLASH_Lock();
-
+// __set_PRIMASK(0);  //开启所有中断
 //   /* Check if the programmed data is OK
 //       MemoryProgramStatus = 0: data programmed correctly
 //       MemoryProgramStatus != 0: number of words not programmed correctly ******/
@@ -211,7 +212,8 @@ int main(void)
 //   else
 //   {
 //   }
-
+//MCalculateMotorPhase();
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -221,7 +223,7 @@ int main(void)
     
     MC_APP_BackgroundHook_M1();
     /* USER CODE END WHILE */
-  
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -331,10 +333,22 @@ static void MX_ADC1_Init(void)
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
   /**ADC1 GPIO Configuration
+  PC0   ------> ADC1_IN6
+  PC1   ------> ADC1_IN7
   PC2   ------> ADC1_IN8
   PA0   ------> ADC1_IN1
   PA2   ------> ADC1_IN3
   */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_0;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   GPIO_InitStruct.Pin = M1_TEMPERATURE_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
@@ -361,7 +375,7 @@ static void MX_ADC1_Init(void)
   ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
   LL_ADC_Init(ADC1, &ADC_InitStruct);
   ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
-  ADC_REG_InitStruct.SequencerLength = LL_ADC_REG_SEQ_SCAN_ENABLE_2RANKS;
+  ADC_REG_InitStruct.SequencerLength = LL_ADC_REG_SEQ_SCAN_ENABLE_4RANKS;
   ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
   ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
   ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_NONE;
@@ -414,6 +428,18 @@ static void MX_ADC1_Init(void)
   LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_2, LL_ADC_CHANNEL_8);
   LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_8, LL_ADC_SAMPLINGTIME_47CYCLES_5);
   LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_8, LL_ADC_SINGLE_ENDED);
+
+  /** Configure Regular Channel
+  */
+  LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_3, LL_ADC_CHANNEL_6);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_6, LL_ADC_SAMPLINGTIME_2CYCLES_5);
+  LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_6, LL_ADC_SINGLE_ENDED);
+
+  /** Configure Regular Channel
+  */
+  LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_4, LL_ADC_CHANNEL_7);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_7, LL_ADC_SAMPLINGTIME_2CYCLES_5);
+  LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_7, LL_ADC_SINGLE_ENDED);
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
@@ -639,7 +665,7 @@ static void MX_I2C3_Init(void)
   /** I2C Initialization
   */
   I2C_InitStruct.PeripheralMode = LL_I2C_MODE_I2C;
-  I2C_InitStruct.Timing = 0x00802172;
+  I2C_InitStruct.Timing = 0x4052060F;
   I2C_InitStruct.AnalogFilter = LL_I2C_ANALOGFILTER_ENABLE;
   I2C_InitStruct.DigitalFilter = 0;
   I2C_InitStruct.OwnAddress1 = 0;
@@ -1235,15 +1261,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-/**
-  * @brief  Gets the page of a given address
-  * @param  Addr: Address of the FLASH Memory
-  * @retval The page of a given address
-  */
-static uint32_t GetPage(uint32_t Addr)
-{
-  return (Addr - FLASH_BASE) / FLASH_PAGE_SIZE;;
-}
+// /**
+//   * @brief  Gets the page of a given address
+//   * @param  Addr: Address of the FLASH Memory
+//   * @retval The page of a given address
+//   */
+// static uint32_t GetPage(uint32_t Addr)
+// {
+//   return (Addr - FLASH_BASE) / FLASH_PAGE_SIZE;;
+// }
 /* USER CODE END 4 */
 
 /**

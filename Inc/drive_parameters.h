@@ -91,11 +91,11 @@
 /* USER CODE END PID_SPEED_INTEGRAL_INIT_DIV */
 
 #define SPD_DIFFERENTIAL_TERM_ENABLING      DISABLE
-#define IQMAX_A                             5
+#define IQMAX_A                             12
 
 /* Default settings */
 #define DEFAULT_CONTROL_MODE                MCM_SPEED_MODE
-#define DEFAULT_TARGET_SPEED_RPM            300
+#define DEFAULT_TARGET_SPEED_RPM            500
 #define DEFAULT_TARGET_SPEED_UNIT           (DEFAULT_TARGET_SPEED_RPM*SPEED_UNIT/U_RPM)
 #define DEFAULT_TORQUE_COMPONENT_A          0
 #define DEFAULT_FLUX_COMPONENT_A            0
@@ -132,7 +132,7 @@
 /* Encoder alignment */
 #define M1_ALIGNMENT_DURATION               3000 /*!< milliseconds */
 #define M1_ALIGNMENT_ANGLE_DEG              0 /*!< degrees [0...359] */
-#define FINAL_I_ALIGNMENT_A                 5 /*!< s16A */
+#define FINAL_I_ALIGNMENT_A                 10 /*!< s16A */
 /* With ALIGNMENT_ANGLE_DEG equal to 90 degrees final alignment */
 /* phase current = (FINAL_I_ALIGNMENT * 1.65/ Av)/(32767 * Rshunt) */
 /* being Av the voltage gain between Rshunt and A/D input */
@@ -142,9 +142,9 @@
 #define OPEN_LOOP_SPEED_RPM                 100 /*!< Final forced speed in rpm */
 #define OPEN_LOOP_SPEED_RAMP_DURATION_MS    1000 /*!< 0-to-Final speed ramp duration  */
 #define OPEN_LOOP_VF                        true /*!< true to enable V/F mode */
-#define OPEN_LOOP_K                         44 /*! Slope of V/F curve expressed in int16_t Voltage for each 0.1Hz of
+#define OPEN_LOOP_K                         400 /*! Slope of V/F curve expressed in int16_t Voltage for each 0.1Hz of
                                                    mecchanical frequency increment. */
-#define OPEN_LOOP_OFF                       4400 /*! Offset of V/F curve expressed in int16_t Voltage applied when
+#define OPEN_LOOP_OFF                       1000 /*! Offset of V/F curve expressed in int16_t Voltage applied when
                                                      frequency is zero. */
 /* USER CODE END OPENLOOP M1 */
 

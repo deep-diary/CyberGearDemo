@@ -85,7 +85,9 @@ __weak void ENC_Init(ENCODER_Handle_t *pHandle)
     pHandle->U32MAXdivPulseNumber = UINT32_MAX / ((uint32_t) pHandle->PulseNumber);
     pHandle->SpeedSamplingFreqUnit = ((uint32_t)pHandle->SpeedSamplingFreqHz * (uint32_t)SPEED_UNIT);
 
-    pHandle->zeroAngleOffset = -9681;
+    pHandle->zeroAngleOffset = 0;
+    pHandle->spiZeroAngleOffset =0;
+    pHandle->direction =1;
 
     //     /* Set IC filter for both channel 1 & 2 */
     //     LL_TIM_IC_SetFilter(TIMx, LL_TIM_CHANNEL_CH1, ((uint32_t)pHandle->ICx_Filter));
@@ -143,6 +145,7 @@ __weak void ENC_Clear(ENCODER_Handle_t *pHandle)
   * @param  pHandle: handler of the current instance of the encoder component
   * @retval Measured electrical angle in [s16degree](measurement_units.md) format.
   */
+//  uint16_t spiangle =0;
 __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
 {
   int16_t elAngle;  /* s16degree format */
@@ -170,6 +173,7 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
     while (!LL_SPI_IsActiveFlag_RXNE(pHandle->pSPI));
     utemp1 = LL_SPI_ReceiveData16(pHandle->pSPI) >> 2;
     LL_SPI_Disable(pHandle->pSPI);
+    //utemp1 -= pHandle->spiZeroAngleOffset;
 #if 0
     pHandle->originalCapture = utemp1;
     utemp1 += pHandle->zeroAngleOffset;
@@ -179,7 +183,10 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
       utemp1 += pHandle->PulseNumber;
     }
 #endif
-
+// if (pHandle->direction >0){
+// utemp1 = -utemp1;
+// }
+   // utemp1 = utemp1;
     pHandle->latestCapture = utemp1;
     uwtemp1                = utemp1 * (pHandle->U32MAXdivPulseNumber);
 
@@ -191,7 +198,11 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
 
     /* Computes and stores the rotor mechanical angle */
 #ifdef ENC_OFFSET_2_MEC
+if (pHandle->direction >0){
     mecAngle                  = (((int16_t)wtemp1 + pHandle->zeroAngleOffset));
+} else {
+    mecAngle                  = -(((int16_t)wtemp1 - pHandle->zeroAngleOffset));
+}
     int16_t hMecAnglePrev     = pHandle->_Super.hMecAngle;
     pHandle->_Super.hMecAngle = mecAngle;
     /* Computes and stores the rotor electrical angle */
@@ -207,7 +218,12 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
 #endif
 
     int16_t hMecSpeedDpp = mecAngle - hMecAnglePrev;
+    
+    if (pHandle->direction >0){
     pHandle->_Super.wMecAngle += ((int32_t)hMecSpeedDpp);
+} else {
+    pHandle->_Super.wMecAngle -= ((int32_t)hMecSpeedDpp);
+}
 
     int16_t deltaCapture    = pHandle->latestCapture - pHandle->PreviousCapture;
     int16_t halfPulseNumber = pHandle->PulseNumber >> 1;

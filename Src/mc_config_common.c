@@ -135,6 +135,22 @@ RDivider_Handle_t BusVoltageSensor_M1 =
   .UnderVoltageThreshold      =  UNDERVOLTAGE_THRESHOLD_d,
 };
 
+RegConv_t LineHALL_A =
+{
+  .regADC                = ADC1,
+  .channel               = MC_ADC_CHANNEL_7,
+  .samplingTime          = LL_ADC_SAMPLINGTIME_47CYCLES_5,
+  .data                  = 0
+};
+
+RegConv_t LineHALL_B =
+{
+  .regADC                = ADC1,
+  .channel               = MC_ADC_CHANNEL_6,
+  .samplingTime          = LL_ADC_SAMPLINGTIME_47CYCLES_5,
+  .data                  = 0
+};
+
 /**
  * @brief Handler of STSPIN32G4 driver.
  */

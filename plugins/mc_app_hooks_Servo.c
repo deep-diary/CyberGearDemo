@@ -31,7 +31,7 @@
 #include "arm_math.h"
 #include"can_interface.h"
 
-
+#include"calibration.h"
 #include <math.h> 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 /** @addtogroup MCSDK
@@ -56,6 +56,22 @@
  *
  *
  */
+
+uint8_t motorOn = false;
+uint8_t faultReset = false;
+int16_t speedRef = 300;
+int16_t prevSpeedRef = 300;
+uint16_t Duration = 5000;
+float32_t posRef = 0;
+float32_t prevPosRef = 0;
+float32_t speedMax = 0.0;
+float32_t prevSpeedMax = 0.0;
+float32_t PosDuration =2;
+bool flag =1;
+uint8_t calibrationflag =0;
+uint16_t CalibrationTime =0;
+float_t theta_ref=0;
+
 void MC_APP_BootHook(void)
 {
   /*
@@ -109,7 +125,10 @@ void MC_APP_LowFrequencyHook_M1(void)
     TC_PositionRegulation(pPosCtrl[M1]);
 
   }
-
+if (calibrationflag){
+  CalibrationTime ++;
+  theta_ref +=0.005;
+}
   /* USER SECTION END PostMediumFrequencyHookM1 */
 }
 
@@ -119,17 +138,23 @@ void MC_APP_StartRunHook_M1(void)
   // PositionControl_Reset(&PosCtrl_M1);
 }
 
-uint8_t motorOn = false;
-uint8_t faultReset = false;
-int16_t speedRef = 300;
-int16_t prevSpeedRef = 300;
-uint16_t Duration = 5000;
-float32_t posRef = 0;
-float32_t prevPosRef = 0;
-float32_t speedMax = 0.0;
-float32_t prevSpeedMax = 0.0;
-float32_t PosDuration =2;
-bool flag =1;
+// void MC_ProgramPositionCommandMotor1New(float32_t FinalPosition, float32_t speed);
+
+// void MC_ProgramPositionCommandMotor1New(float32_t FinalPosition, float32_t speed){
+//   MCI_ExecPositionCommandNEW(pMCI[M1], FinalPosition, speed);
+// };
+
+// MCI_ExecPositionCommandNEW(MCI_Handle_t *pHandle, float_t FinalPosition, float_t speed)
+// {
+//   pHandle->pFOCVars->bDriveInput = INTERNAL;
+//   pHandle->Omega = speed;
+//   pHandle->ElapseTime = 0.0f;
+//   float_t currentPositionRad = (float_t)(SPD_GetMecAngle(STC_GetSpeedSensor(pHandle->pSTC))) / RADTOS16;
+//   pHandle->Theta = currentPositionRad;
+//   pHandle->FinalAngle = FinalPosition;
+// }
+
+
 
 void UserApp(void)
 {
@@ -138,7 +163,7 @@ switch (MC_GetSTMStateMotor1())
   case IDLE:
     if (motorOn) {
     MC_StartMotor1();
-     //MC_ProgramPositionCommandMotor1(posRef, 0);
+    MC_ProgramPositionCommandMotor1(0,0);
    
 
     }
@@ -152,7 +177,8 @@ switch (MC_GetSTMStateMotor1())
 
     if (posRef != prevPosRef ) {
       //PosDuration = ABS(3*(posRef-prevPosRef)/(2*speedMax)) ;
-      MC_ProgramPositionCommandMotor1(posRef, PosDuration);
+       MC_ProgramPositionCommandMotor1(posRef, 2);
+      // MC_ProgramPositionCommandMotor1New(posRef,speedNext);
       prevPosRef = posRef;
     }
 
@@ -176,6 +202,12 @@ void MC_APP_BackgroundHook_M1(void)
 {
   CAN_ProcessMessages();
   UserApp();
+  if(calibrationflag)
+  {MCalculateMotorPhase();
+    //MX_TIM1_Init(void);
+    
+  }
+
 }
 
 /** @} */

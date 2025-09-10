@@ -41,6 +41,8 @@ extern NTC_Handle_t TempSensor_M1;
 extern VirtualSpeedSensor_Handle_t VirtualSpeedSensorM1;
 extern RegConv_t VbusRegConv_M1;
 extern RDivider_Handle_t BusVoltageSensor_M1;
+extern RegConv_t LineHALL_A;
+extern RegConv_t LineHALL_B;
 extern EncAlign_Handle_t *pEAC[NBR_OF_MOTORS];
 extern PWMC_Handle_t *pwmcHandle[NBR_OF_MOTORS];
 extern NTC_Handle_t *pTemperatureSensor[NBR_OF_MOTORS];

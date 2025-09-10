@@ -312,7 +312,6 @@ __weak void TSK_MediumFrequencyTaskM1(void)
                 FOC_CalcCurrRef(M1);
                 STC_ForceSpeedReferenceToCurrentSpeed(pSTC[M1]); /* Init the reference speed to current speed */
                 MCI_ExecBufferedCommands(&Mci[M1]); /* Exec the speed ramp after changing of the speed sensor */
-                //MC_APP_StartRunHook_M1();
                 Mci[M1].State = RUN;
               }
               }
@@ -471,7 +470,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
     Mci[M1].State = FAULT_NOW;
   }
   /* USER CODE BEGIN MediumFrequencyTask M1 6 */
-DumpTrace();
+
   /* USER CODE END MediumFrequencyTask M1 6 */
 }
 
@@ -604,7 +603,9 @@ __attribute__((section (".ccmram")))
 float_t theta_mech =0;
 float_t dtheta_mech =0;
 qd_f_t i_q ;
-
+uint16_t LineHALLA =0;
+uint16_t LineHALLB =0;
+extern uint8_t calibrationflag;
 /**
   * @brief  Executes the Motor Control duties that require a high frequency rate and a precise timing.
   *
@@ -653,6 +654,9 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
     float_t dtheta = MC_GetMecSpeedAverageMotor1();
     dtheta_mech = 0.6283185307*dtheta/9;
     i_q = MC_GetIqdMotor1_F();
+    LineHALLA  =  RCM_GetRegularConv(&LineHALL_A);
+    LineHALLB  =  RCM_GetRegularConv(&LineHALL_B);
+     DumpTrace();
     /* USER CODE END HighFrequencyTask SINGLEDRIVE_3 */
   }
 

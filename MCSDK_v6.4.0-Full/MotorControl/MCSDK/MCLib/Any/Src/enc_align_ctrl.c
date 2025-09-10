@@ -56,7 +56,7 @@ __weak void EAC_Init(EncAlign_Handle_t *pHandle, SpeednTorqCtrl_Handle_t *pSTC, 
     pHandle->pSTC = pSTC;
     pHandle->pVSS = pVSS;
     pHandle->pENC = pENC;
-    pHandle->EncAligned = true;
+    pHandle->EncAligned = true;//true
     pHandle->EncRestart = false;
 #ifdef NULL_PTR_CHECK_ENC_ALI_CTRL
   }

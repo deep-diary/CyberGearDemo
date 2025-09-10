@@ -285,6 +285,8 @@ void TC_PositionRegulation(PosCtrl_Handle_t *pHandle)
     /* Nothing to do */
   }
 
+  //TC_MoveExecutionNew(pHandle);
+
   if (pHandle->PositionControlRegulation == ENABLE)
   {
     wMecAngleRef = (int32_t)(pHandle->Theta * RADTOS16);
@@ -396,6 +398,18 @@ void TC_MoveExecution(PosCtrl_Handle_t *pHandle)
   }
 }
 
+
+// void TC_MoveExecutionNew(PosCtrl_Handle_t *pHandle)
+// {
+
+//   if (pHandle->Theta < pHandle->FinalAngle){
+//     pHandle->Theta += pHandle->Omega * pHandle->SamplingTime;
+//   } 
+//   else{
+//     pHandle->Theta = pHandle->FinalAngle;
+//   }
+
+// }
 /**
   * @brief  Updates the angular position.
   * @param  pHandle handler of the current instance of the Position Control component.

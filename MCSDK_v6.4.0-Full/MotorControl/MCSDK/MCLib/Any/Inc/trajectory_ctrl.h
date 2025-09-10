@@ -93,6 +93,7 @@ typedef struct
   float OmegaPrev;                     /**< @brief Previous estimated angular speed of frame (N-1) */
   float Theta;                         /**< @brief Current angular position */
   float ThetaPrev;                     /**< @brief Angular position of frame (N-1) */
+  float LastRef;
   uint8_t ReceivedTh;                  /**< @brief At startup of follow mode, need to receive two angles to compute the
                                                    speed and acceleration */
   bool PositionControlRegulation;      /**< @brief Flag to activate the position control regulation */
@@ -128,6 +129,8 @@ void TC_PositionRegulation(PosCtrl_Handle_t *pHandle);
 
 /* Executes the programmed trajectory movement */
 void TC_MoveExecution(PosCtrl_Handle_t *pHandle);
+
+void TC_MoveExecutionNew(PosCtrl_Handle_t *pHandle);
 
 /* Handles the alignment phase at starting before any position commands */
 void TC_EncAlignmentCommand(PosCtrl_Handle_t *pHandle);

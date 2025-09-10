@@ -130,6 +130,8 @@ __weak void MCboot( MCI_Handle_t* pMCIList[NBR_OF_MOTORS] )
     (void)RCM_RegisterRegConv(&TempRegConv_M1);
     NTC_Init(&TempSensor_M1);
 
+    (void)RCM_RegisterRegConv(&LineHALL_A);
+    (void)RCM_RegisterRegConv(&LineHALL_B);
     /*************************************************/
     /*   STSPIN32G4 driver component initialization  */
     /*************************************************/
