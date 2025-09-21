@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    template.h,
+  * @file    flash_writer.h,
   * @author  Motor Control Comptence Center, ST Microelectronics
   * @brief   Declaration of extra instances
   ******************************************************************************
@@ -17,8 +17,8 @@
   ******************************************************************************
   */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __TEMPLATE_H
-#define __TEMPLATE_H
+#ifndef __FLASHWRITER_H
+#define __FLASHWRITER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,19 +27,16 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 
 /* Exported constants --------------------------------------------------------*/
-#define CALIB_ID  0XA5A5
+#define FLASH_USER_START_ADDR   ADDR_FLASH_PAGE_63   /* Start @ of user Flash area */
+#define FLASH_USER_END_ADDR     (ADDR_FLASH_PAGE_63 + FLASH_PAGE_SIZE - 1)   /* End @ of user Flash area */
+
+#define DATA_32                 ((uint32_t)0x12345678)
+#define DATA_64                 ((uint64_t)0x1234567812345678)
 /* Exported type -------------------------------------------------------------*/
 
 /* Exported variables --------------------------------------------------------*/
 
 /* Exported functions ------------------------------------------------------- */
-void MCalculateMotorPhase(void);
-void MCalculateMotorPhaseInt(void);
-void CalculateOffsetAngle(void);
-HAL_StatusTypeDef Save_Calibration_To_Flash(void);
-int16_t Load_Calibration_From_Flash(void);
-int16_t Load_CalibrationDirection_From_Flash(void);
-int16_t Load_CalibID_From_Flash(void);
 
 
 #ifdef __cplusplus

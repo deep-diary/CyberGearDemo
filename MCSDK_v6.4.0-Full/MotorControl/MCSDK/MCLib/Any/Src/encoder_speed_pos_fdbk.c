@@ -285,9 +285,9 @@ __weak bool ENC_CalcAvrgMecSpeedUnit(ENCODER_Handle_t *pHandle, int16_t *pMecSpe
 #endif
     int32_t wtemp1;
     int32_t wtemp2;
-    uint32_t OverflowCntSample;
-    uint32_t CntCapture;
-    uint32_t directionSample;
+    //uint32_t OverflowCntSample;
+    //uint32_t CntCapture;
+    //uint32_t directionSample;
 
     /* Computes & returns average mechanical speed */
     wtemp1 = pHandle->wOverallAngleVariation * ((int32_t)pHandle->SpeedSamplingFreqUnit);
@@ -330,12 +330,13 @@ __weak void ENC_SetMecAngle(ENCODER_Handle_t *pHandle, int16_t hMecAngle)
     // uint16_t hAngleCounts;
     // uint16_t hMecAngleuint;
     // int16_t localhMecAngle = hMecAngle;
-    int16_t localhElAngle;
+
 #ifdef ENC_OFFSET_2_MEC
     pHandle->zeroAngleOffset  = hMecAngle - pHandle->_Super.hMecAngle;
     pHandle->_Super.hMecAngle = hMecAngle;
     pHandle->_Super.hElAngle  = hMecAngle * (int16_t)pHandle->_Super.bElToMecRatio;
 #else
+  int16_t localhElAngle;
   pHandle->_Super.hMecAngle = hMecAngle;
   localhElAngle             = hMecAngle * (int16_t)pHandle->_Super.bElToMecRatio;
   pHandle->zeroAngleOffset  = localhElAngle - localhElAnglepHandle->_Super.hElAngle;

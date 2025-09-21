@@ -240,7 +240,7 @@ void CAN_ProcessMessages(void) {
 switch (cmd_type) {
         // ---- 类型0：获取设备ID ----
         case CMD_GET_ID: {
-            uint32_t UID[3] = {0};// 读取芯片唯一ID
+            uint32_t UID[3] = {0x12345678,0x12345678,0x12345678};// 读取芯片唯一ID
             UID[0] = HAL_GetUIDw0();
             UID[1] = HAL_GetUIDw1();
             UID[2] = HAL_GetUIDw2();
@@ -280,14 +280,14 @@ switch (cmd_type) {
 
         // ---- 类型6：设机械零位 ----
         case CMD_SET_ZERO:
-            //Motor_CalibrateZeroPoint();
-            //CAN_SendResponse(CMD_SET_ZERO, host_id, NULL, 0); // 空数据应答
+//            Motor_CalibrateZeroPoint();
+//            CAN_SendResponse(CMD_SET_ZERO, host_id, NULL, 0); // 空数据应答
             break;
 
         // ---- 类型7：修改CAN ID ----
         case CMD_SET_CANID:
-            //my_can_id = rx_data[0]; // 新ID存首字节
-            //SaveConfigToFlash();    // 保存配置
+            my_can_id = rx_data[0]; // 新ID存首字节
+            // SaveConfigToFlash();    // 保存配置
             //CAN_SendResponse(CMD_SET_CANID, host_id, &my_can_id, 1); // 回传新ID
             break;
 

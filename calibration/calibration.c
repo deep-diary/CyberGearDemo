@@ -54,7 +54,9 @@
 /* Private type --------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
+#define CALIBRATION_FLASH_ADDRESS 0x0801F800 // 确保该地址在Flash可用区域
 
+#define CALIB_PAGE_SIZE 2048 // STM32G4系列Flash页大小
 /* Private functions ---------------------------------------------------------*/
 
 /* Global functions ----------------------------------------------------------*/
@@ -70,27 +72,93 @@ extern ENCODER_Handle_t ENCODER_M1;
 extern float_t theta_ref;
 uint16_t spiAngle =0;
 
+HAL_StatusTypeDef Save_Calibration_To_Flash(void)
+{
+  HAL_StatusTypeDef status;
+  FLASH_EraseInitTypeDef eraseConfig;
+  uint32_t pageError;
+ __disable_irq();
+  // 解锁Flash
+  HAL_FLASH_Unlock();
+  
+  // 配置擦除参数
+  eraseConfig.TypeErase = FLASH_TYPEERASE_PAGES;
+  eraseConfig.Banks = FLASH_BANK_1; // 根据实际芯片选择
+  eraseConfig.Page = 63;
+  eraseConfig.NbPages = 1;
+  
+  // 擦除Flash页
+  status = HAL_FLASHEx_Erase(&eraseConfig, &pageError);
+  if (status != HAL_OK) {
+    HAL_FLASH_Lock();
+    return status;
+  }
+  
+  // 准备64位数据（使用双字编程）
+  uint64_t dataToWrite = 0;
+  
+  // 将16位标定值放入64位数据的低16位, 方向值放入
+  dataToWrite = (uint64_t)((uint16_t)ENCODER_M1.zeroAngleOffset) ;
+  dataToWrite = dataToWrite |((uint64_t)ENCODER_M1.direction << 16);
+  dataToWrite = (dataToWrite & 0x0000FFFFFFFFFFFFULL) | ((uint64_t)CALIB_ID << 48);
+  
+  
+  // 写入数据（使用双字编程）
+  status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, 
+                            CALIBRATION_FLASH_ADDRESS, 
+                            dataToWrite);
+
+  // 锁定Flash
+  HAL_FLASH_Lock();
+  __enable_irq();
+  return status;
+}
+
+/**
+  * @brief  从Flash加载标定值
+  * @retval 加载的电角度偏移值
+  */
+int16_t Load_Calibration_From_Flash(void)
+{
+  // 直接读取Flash地址的值
+  return *(volatile int16_t*)CALIBRATION_FLASH_ADDRESS;
+}
+
+int16_t Load_CalibrationDirection_From_Flash(void)
+{
+    // 读取Flash地址+2的位置，对应64位数据的第16-31位（方向值）
+    return *(volatile int16_t*)(CALIBRATION_FLASH_ADDRESS + 2);
+}
+
+
+int16_t Load_CalibID_From_Flash(void)
+{
+  // 直接读取Flash地址的值
+  return *(volatile int16_t*)(CALIBRATION_FLASH_ADDRESS+6);
+}
+
+void MCalculateMotorPhaseInt(void){
+uint16_t calib_flag;
+calib_flag = Load_CalibID_From_Flash(); 
+if (calib_flag != CALIB_ID)		//first time to calibraion.
+	{calibrationflag =1;}
+        else
+        { 
+        ENCODER_M1.zeroAngleOffset = Load_Calibration_From_Flash();
+        ENCODER_M1.direction = Load_CalibrationDirection_From_Flash();
+        }  
+}
+
+
 void MCalculateMotorPhase(void)
 {
   int16_t hElAngle = 0;
-  //int16_t hMecAngle =0;
-
-  // float theta_actual = 0;
-  // float v_d = V_CAL;                                                             //Put all volts on the D-Axis
-  // float v_q = 0.0f;
-  // float v_u, v_v, v_w = 0;
-  // float dtc_u, dtc_v, dtc_w = .5f;
-  // int sample_counter = 0;
 
   qd_t Vqd;
   alphabeta_t  Valphabeta;
   Vqd.q = 0; Vqd.d = 3000;//2000对应5A
   PWMC_Handle_t *pwmcHandleCali;
   pwmcHandleCali = pwmcHandle[M1];
-  //int16_t zeroAngleOffset=0;
-  int32_t theta_end =0 ,theta_start =0;
-
-
 
 TIM1->BDTR |= TIM_BDTR_MOE; // 强制使能主输出
 
@@ -145,6 +213,7 @@ if (theta_ref ){
  
         calibrationflag =0;
         HAL_Delay(1000);
+Save_Calibration_To_Flash();
 }
         CalibrationTime =0; 
 }       

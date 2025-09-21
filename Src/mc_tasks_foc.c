@@ -36,7 +36,7 @@
 #include "mc_app_hooks.h"
 
 /* USER CODE BEGIN Includes */
-#include"dataAcq.h"
+// #include"dataAcq.h"
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private define */
@@ -656,7 +656,7 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
     i_q = MC_GetIqdMotor1_F();
     LineHALLA  =  RCM_GetRegularConv(&LineHALL_A);
     LineHALLB  =  RCM_GetRegularConv(&LineHALL_B);
-     DumpTrace();
+    //DumpTrace();
     /* USER CODE END HighFrequencyTask SINGLEDRIVE_3 */
   }
 

@@ -130,8 +130,6 @@ void Error_Handler(void);
 #define M1_ENCODER_B_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-/* Base address of the Flash pages */
-
 #define ADDR_FLASH_PAGE_0     ((uint32_t)0x08000000) /* Base @ of Page 0, 2 Kbytes */
 #define ADDR_FLASH_PAGE_1     ((uint32_t)0x08000800) /* Base @ of Page 1, 2 Kbytes */
 #define ADDR_FLASH_PAGE_2     ((uint32_t)0x08001000) /* Base @ of Page 2, 2 Kbytes */

@@ -22,21 +22,22 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mc_app_hooks.h"
-
+#include "stm32g4_flash_integration.h"
+#include "calibration.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+#define FLASH_USER_START_ADDR   ADDR_FLASH_PAGE_62   /* Start @ of user Flash area */
+#define FLASH_USER_END_ADDR     (ADDR_FLASH_PAGE_63 + FLASH_PAGE_SIZE - 1)   /* End @ of user Flash area */
 
+#define DATA_32                 ((uint32_t)0x12345678)
+#define DATA_64                 ((uint64_t)0x9999999999999999)
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-// #define FLASH_USER_START_ADDR   ADDR_FLASH_PAGE_63   /* Start @ of user Flash area */
-// #define FLASH_USER_END_ADDR     (ADDR_FLASH_PAGE_63 + FLASH_PAGE_SIZE - 1)   /* End @ of user Flash area */
 
-// #define DATA_32                 ((uint32_t)0x12345678)
-// #define DATA_64                 ((uint64_t)0x1234567812345678)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,16 +48,20 @@
 /* Private variables ---------------------------------------------------------*/
 
 FDCAN_HandleTypeDef hfdcan1;
-
+int16_t  __int16_reg[128] = {0};
+int32_t __int32_reg[128] = {0};
+float __float_reg[32] = {0};
 /* USER CODE BEGIN PV */
-// uint32_t FirstPage = 0, NbOfPages = 0;
-// uint32_t Address = 0, PageError = 0;
-// __IO uint32_t MemoryProgramStatus = 0;
-// __IO uint32_t data32 = 0;
+uint32_t FirstPage = 0, NbOfPages = 0;
+uint32_t Address = 0, PageError = 0;
+__IO uint32_t MemoryProgramStatus = 0;
+__IO uint32_t data32 = 0;
 
 /*Variable used for Erase procedure*/
 static FLASH_EraseInitTypeDef EraseInitStruct;
 
+/*Variable used for Erase procedure*/
+static uint32_t GetPage(uint32_t Address);
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -76,7 +81,7 @@ static void MX_SPI1_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-// static uint32_t GetPage(uint32_t Address);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -125,13 +130,15 @@ int main(void)
   MX_MotorControl_Init();
   MX_SPI1_Init();
   MX_FDCAN1_Init();
-
+  MCalculateMotorPhaseInt();
+  //stm32g4_initUserConfig();
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-//  __set_PRIMASK(1);   //关闭所有中断
-// //   /* Unlock the Flash to enable the flash control register access *************/
-//   HAL_FLASH_Unlock();
+
+  /* USER CODE END 2 */
+  //__disable_irq();
+// HAL_FLASH_Unlock();
 
 //  /* Clear OPTVERR bit set on virgin samples */
 //   __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_OPTVERR);
@@ -148,7 +155,7 @@ int main(void)
 //   /* Fill EraseInit structure*/
 //   EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
 //   EraseInitStruct.Page        = FirstPage;
-//   EraseInitStruct.NbPages     = 1;
+//   EraseInitStruct.NbPages     = NbOfPages;
 
 //   /* Note: If an erase operation in Flash memory also concerns data in the data or instruction cache,
 //      you have to make sure that these data are rewritten before they are accessed during code
@@ -163,7 +170,6 @@ int main(void)
 //       user can call function 'HAL_FLASH_GetError()'
 //     */
 //     /* Infinite loop */
-
 //   }
 
 //   /* Program the user Flash area word by word
@@ -181,13 +187,14 @@ int main(void)
 //     {
 //       /* Error occurred while writing data in Flash memory.
 //          User can add here some code to deal with this error */
+
 //     }
 //   }
 
 //   /* Lock the Flash to disable the flash control register access (recommended
 //      to protect the FLASH memory against possible unwanted operation) *********/
 //   HAL_FLASH_Lock();
-// __set_PRIMASK(0);  //开启所有中断
+
 //   /* Check if the programmed data is OK
 //       MemoryProgramStatus = 0: data programmed correctly
 //       MemoryProgramStatus != 0: number of words not programmed correctly ******/
@@ -204,23 +211,22 @@ int main(void)
 //     }
 //     Address = Address + 4;
 //   }
-
+// //__enable_irq();
 //   /*Check if there is an issue to program data*/
 //   if (MemoryProgramStatus == 0)
 //   {
+//     /* No error detected. Switch on LED2*/
+
 //   }
 //   else
 //   {
-//   }
-//MCalculateMotorPhase();
-  
-  /* USER CODE END 2 */
+//     /* Error detected. LED2 will blink with 1s period */
 
-  /* Infinite loop */
+//   }
+//   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    
     MC_APP_BackgroundHook_M1();
     /* USER CODE END WHILE */
 
@@ -305,7 +311,15 @@ static void MX_NVIC_Init(void)
   NVIC_SetPriority(TIM4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),3, 0));
   NVIC_EnableIRQ(TIM4_IRQn);
 }
-
+/**
+  * @brief  Gets the page of a given address
+  * @param  Addr: Address of the FLASH Memory
+  * @retval The page of a given address
+  */
+static uint32_t GetPage(uint32_t Addr)
+{
+  return (Addr - FLASH_BASE) / FLASH_PAGE_SIZE;;
+}
 /**
   * @brief ADC1 Initialization Function
   * @param None
