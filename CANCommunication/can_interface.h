@@ -37,37 +37,17 @@ extern "C" {
  #define KD_MIN 0.0f
  #define KD_MAX 5.0f
  #define T_MIN -12.0f
+ #ifndef T_MAX
  #define T_MAX  12.0f
+ #endif
 /* Exported type -------------------------------------------------------------*/
 
-// 扩展帧ID结构体 (29位协议)
-typedef struct {
-    uint32_t target_id : 8;   // 目标地址 (Bit0-7)
-    uint32_t data2     : 16;  // 数据区2 (Bit8-23)
-    uint32_t comm_type : 5;   // 指令类型 (Bit24-28)
-    uint32_t res       : 3;   // 保留位 (Bit29-31)
-} ExCanIdInfo;
+#define  CAN_ID_MASTER          (0X00)   //控制主机地址 - SPIE
+#define  CAN_ID_MOTOR_DEFAULT   (0X7F)   //电机默认地址 - 未配置id
+#define  CAN_ID_BROADCAST       (0XFE)   //广播地址     - 默认接收地址
+#define  CAN_ID_DEBUG_UI        (0XFD)   //调试地址     - 上位机地址
 
-// ID与uint32_t互转联合体
-typedef union {
-    uint32_t ext_id;
-    ExCanIdInfo id_info;
-} CanIdUnion;
 
-// 指令类型枚举 (10种)
-typedef enum {
-    CMD_GET_ID      = 0,   // 获取设备ID
-    CMD_MOTOR_CTRL  = 1,   // 运控模式指令
-    CMD_MOTOR_STATE = 2,   // 电机状态应答
-    CMD_ENABLE      = 3,   // 电机使能
-    CMD_STOP        = 4,   // 电机停止
-    CMD_SET_ZERO    = 6,   // 设置机械零位
-    CMD_SET_CANID   = 7,   // 设置CAN ID
-    CMD_READ_PARAM  = 17,  // 读取参数
-    CMD_WRITE_PARAM = 18,  // 写入参数
-    CMD_SAVE_PARAM  = 19,  // 保存参数到Flash
-    CMD_FAULT       = 21   // 故障反馈
-} CanCmdType;
 
 // 故障标志结构体
 typedef struct {
@@ -114,17 +94,106 @@ typedef enum {
     PARAM_TYPE_MISMATCH = 0x04  // 类型不匹配
 } ParamWriteResult;
 
+// ----------------------------------------------------Blue---------------------
+enum canComMode{   //定义id中24-28位
+    CANCOM_ANNOUNCE_DEVID = 0,//通告设备ID
+	
+    CANCOM_MOTOR_CTRL,       //MOTOR-电机控制
+    CANCOM_MOTOR_FEEDBACK,   //MOTOR-电机反馈
+	CANCOM_MOTOR_IN,         //MOTOR-进入电机模式
+	CANCOM_MOTOR_RESET,      //MOTOR-电机复位模式
+	CANCOM_MOTOR_CALI,       //MOTOR-高速编码器标定
+	CANCOM_MOTOR_ZERO,       //MOTOR-设置机械零位	
+	CANCOM_MOTOR_ID,         //MOTOR-设置ID	
+	CANCOM_PARA_WRITE,       //整体参数-写入
+	CANCOM_PARA_READ,        //整体参数-读取
+	CANCOM_PARA_UPDATE,      //示波器参数-更新上传    10
+    CANCOM_OTA_START,        //OTA-启动
+    CANCOM_OTA_INFO,         //OTA-升级文件描述
+    CANCOM_OTA_ING,          //OTA-升级中
+    CANCOM_OTA_END,          //OTA-升级完成	
+	CANCOM_CALI_ING,         //编码器标定中
+	CANCOM_CALI_RST,         //编码器标定结果
+	CANCOM_SDO_READ,     			//sdo 读
+	CANCOM_SDO_WRITE,     		//sdo 写
+	CANCOM_PARA_STR_INFO,    //参数-字符串信息
+    CANCOM_MOTOR_BRAKE,      //MOTOR-进入刹车模式，20
+    CANCOM_FAULT_WARN,       //故障和警告信息 
+    CANCOM_MODE_TOTAL,
+};
+
+
+// ----------------------------------------------------Blue---------------------
+
+
+// 指令类型枚举 (10种)
+typedef enum {
+    CMD_GET_ID      = 0,   // 获取设备ID
+    CMD_MOTOR_CTRL  = 1,   // 运控模式指令
+    CMD_MOTOR_STATE = 2,   // 电机状态应答
+    CMD_ENABLE      = 3,   // 电机使能
+    CMD_STOP        = 4,   // 电机停止
+    CMD_SET_ZERO    = 6,   // 设置机械零位
+    CMD_SET_CANID   = 7,   // 设置CAN ID
+    CMD_READ_PARAM  = 17,  // 读取参数
+    CMD_WRITE_PARAM = 18,  // 写入参数
+    CMD_SAVE_PARAM  = 19,  // 保存参数到Flash
+    CMD_FAULT       = 21,  // 故障反馈
+    CMD_WRITE_SN    = 66,  // 写入SN
+    CMD_SEND_VERSION    = 67   // 发送版本号
+} CanCmdType;
+
+// 状态类型枚举
+typedef enum {
+    STATE_RESET = 0,
+    STATE_CALI  = 1,
+    STATE_MOTOR = 2
+} stateType;
+
+// 电机状态结构体
+struct motoStatus{
+	unsigned char underVoltFault:1; //欠压故障
+	unsigned char overCurFault:1;  //过流故障
+	unsigned char overTempFault:1; //过温故障
+	unsigned char encoderFault:1;  //编码器故障
+	unsigned char ol7Fault:1;     //i2t过载故障
+	unsigned char noCaliFault:1;  //未校正磁编故障
+	stateType  mtMode:2;	
+};
+
+extern struct motoStatus mtStatus;
+
+// 扩展帧ID结构体 (29位协议)
+typedef struct {
+    uint32_t target_id : 8;   // 目标地址 (Bit0-7)
+    uint32_t data2     : 16;  // 数据区2 (Bit8-23)
+    CanCmdType comm_type : 5;   // 指令类型 (Bit24-28)
+    uint32_t res       : 3;   // 保留位 (Bit29-31)
+} ExCanIdInfo;
+
+// ID与uint32_t互转联合体
+typedef union {
+    uint32_t ext_id;
+    ExCanIdInfo id_info;
+} CanIdUnion;
+
 // 接收报文结构体
 typedef struct {
-    uint32_t ext_id;
+    CanIdUnion ext_id;
     uint8_t data[8];
 } CanRxMsg;
 
 // 发送报文结构体
 typedef struct {
-    uint32_t ext_id;
+    CanIdUnion ext_id;
     uint8_t data[8];
 } CanTxMsg;
+
+#define txCanIdEx   (*((ExCanIdInfo*)&(can_tx_buffer.ext_id)))
+#define rxCanIdEx   (*((ExCanIdInfo*)&(can_rx_buffer.ext_id))) //将扩展帧id解析为自定义数据结构
+
+#define can_txd()   can_message_transmit(&hfdcan1, &can_tx_buffer)
+
 
 // 参数存储结构体（基于表格）
 typedef struct {
@@ -154,6 +223,18 @@ void CAN_ProcessMessages(void);
 void CAN_SendResponseCmdType0(uint16_t host_id, uint8_t* data);
 void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id);
 ParamWriteResult Write_Parameter(uint8_t data_bytes[8]);
+void can_message_transmit(FDCAN_HandleTypeDef *hfdcan, CanTxMsg *tx_msg);
+void factory_test(void);
+void can_broadcast_devInfo(void);
+void read_SN(void);
+void write_SN_flash(void);
+void send_SN_to_master(uint8_t flag);
+void send_version_to_master(uint8_t flag);
+void CAN_SaveIdToFlash(uint8_t can_id);
+void CAN_LoadIdFromFlash(void);
+HAL_StatusTypeDef Flash_Write64BitData(uint32_t address, uint64_t data);
+uint64_t Flash_Read64BitData(uint32_t address);
+uint8_t Flash_TestWrite(void);
 
 #ifdef __cplusplus
 }

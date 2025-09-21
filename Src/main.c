@@ -24,6 +24,7 @@
 #include "mc_app_hooks.h"
 #include "stm32g4_flash_integration.h"
 #include "calibration.h"
+#include "can_interface.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -131,10 +132,12 @@ int main(void)
   MX_SPI1_Init();
   MX_FDCAN1_Init();
   MCalculateMotorPhaseInt();
-  //stm32g4_initUserConfig();
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
+  
+  // 从Flash加载CAN ID
+  CAN_LoadIdFromFlash();
 
   /* USER CODE END 2 */
   //__disable_irq();

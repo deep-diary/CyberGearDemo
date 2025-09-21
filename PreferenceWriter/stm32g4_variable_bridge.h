@@ -26,8 +26,8 @@ extern int16_t  __int16_reg[128];
 
 /* 整数寄存器绑定 */
 #define MOTOR_DIRECTION          __int32_reg[0]        // 电机方向   未使用
-#define CAN_BUS_ID               __int32_reg[1]        // CAN总线ID    未使用
-#define CAN_MASTER_ID            __int32_reg[2]        // CAN主站ID   未使用
+#define CAN_BUS_ID               __int32_reg[1]        // CAN总线ID    已使用
+#define CAN_MASTER_ID            __int32_reg[2]        // CAN主站ID   已使用
 #define CAN_TIMEOUT_MS           __int32_reg[3]        // CAN超时时间(ms)  未使用
 #define ENCODER_RESOLUTION       __int32_reg[4]        // 编码器分辨率  未使用
 #define CONTROL_MODE             __int32_reg[5]        // 控制模式      未使用
