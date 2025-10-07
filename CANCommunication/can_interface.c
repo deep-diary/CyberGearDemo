@@ -413,7 +413,8 @@ switch (cmd_type) {
         // ---- 类型4：紧急停止 ----
         case CMD_STOP:
             motorOn =false;
-            
+mymotorcanid = my_can_id;//按照手册应答帧格式更新本机ID
+            CAN_SendResponseCmdType2(host_id, mymotorcanid); // 应答使能状态            
             if(can_rx_buffer.data[1]==0x01)
 			{
 				factory_test();
