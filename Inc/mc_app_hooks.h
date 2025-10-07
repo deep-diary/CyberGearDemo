@@ -45,6 +45,12 @@ extern "C" {
 /* Hook function called at end of MCboot() */
 void MC_APP_BootHook(void);
 
+void MC_APP_PrevMediumFrequencyHook_M1(void);
+
+int16_t MC_APP_CalcTorqueReferenceHook(int16_t hTref);
+
+void MC_APP_PostHighFrequencyHook_M1(void);
+
 /* Hook function called right after the Medium Frequency Task of Motor 1 */
 void MC_APP_PostMediumFrequencyHook_M1(void);
 

@@ -41,7 +41,7 @@
 // that the buffer is full (SNP_TRC_FLAG_OVERFLOW) before writing the last record [in order
 // to reduce the code complexity]. As a result the overflow occurs with (N-1) records, and
 // the buffer has to contain at least 2 records. [defining more than 2 is strongly recommended].
-#define SNP_TRC_BUFFER_SIZE (100*(SNP_TRC_NB_MAX_WORD_VAR+1)) // +1 for timestamp when SNP_TRC_HEADER_VERSION==1
+#define SNP_TRC_BUFFER_SIZE (500*(SNP_TRC_NB_MAX_WORD_VAR+1)) // +1 for timestamp when SNP_TRC_HEADER_VERSION==1
 
 
 // Trace header format

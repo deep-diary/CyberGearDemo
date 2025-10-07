@@ -27,6 +27,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "math_ops.h"
+#include "param_manager.h"
 /* Exported constants --------------------------------------------------------*/
  #define P_MIN -12.5f
  #define P_MAX 12.5f 
@@ -36,10 +37,8 @@ extern "C" {
  #define KP_MAX 500.0f
  #define KD_MIN 0.0f
  #define KD_MAX 5.0f
- #define T_MIN -12.0f
- #ifndef T_MAX
- #define T_MAX  12.0f
- #endif
+ #define TORQUE_MIN -12.0f
+ #define TORQUE_MAX  12.0f
 /* Exported type -------------------------------------------------------------*/
 
 #define  CAN_ID_MASTER          (0X00)   //控制主机地址 - SPIE
@@ -61,6 +60,9 @@ typedef struct {
 
 // 参数索引枚举（基于表格）
 typedef enum {
+    PARAM_SIN_SWITCH     = 0x7001, // Sin on OFF CONTROAL
+    PARAM_SIN_FREQ       = 0x7002, // 设置sin测试的频率
+    PARAM_SIN_AMP        = 0x7003, // 设置sin测试的幅度
     PARAM_RUN_MODE       = 0x7005, // 运控模式
     PARAM_IQ_REF         = 0x7006, // 电流模式Iq指令
     PARAM_SPD_REF        = 0x700A, // 转速模式转速指令
@@ -82,7 +84,8 @@ typedef enum {
     MODE_MOTION_CTRL = 0, // 运控模式
     MODE_POSITION    = 1, // 位置模式
     MODE_SPEED       = 2, // 速度模式
-    MODE_CURRENT     = 3  // 电流模式
+    MODE_CURRENT     = 3,  // 电流模式
+    MODE_JOG         = 7  // JOG模式
 } MotorRunMode;
 
 // 参数写入结果枚举
@@ -133,14 +136,15 @@ typedef enum {
     CMD_MOTOR_STATE = 2,   // 电机状态应答
     CMD_ENABLE      = 3,   // 电机使能
     CMD_STOP        = 4,   // 电机停止
+    CMD_CALI        = 5,   // 编码器标定
     CMD_SET_ZERO    = 6,   // 设置机械零位
     CMD_SET_CANID   = 7,   // 设置CAN ID
     CMD_READ_PARAM  = 17,  // 读取参数
     CMD_WRITE_PARAM = 18,  // 写入参数
     CMD_SAVE_PARAM  = 19,  // 保存参数到Flash
     CMD_FAULT       = 21,  // 故障反馈
-    CMD_WRITE_SN    = 66,  // 写入SN
-    CMD_SEND_VERSION    = 67   // 发送版本号
+    CMD_WRITE_SN    = 22,  // 写入SN
+    CMD_SEND_VERSION    = 23   // 发送版本号， 最多是32，因为是5位
 } CanCmdType;
 
 // 状态类型枚举
@@ -214,7 +218,7 @@ typedef struct {
 } MotorParams;
 
 /* Exported variables --------------------------------------------------------*/
-
+extern uint8_t my_can_id;
 /* Exported functions ------------------------------------------------------- */
 
 // 函数声明
@@ -230,11 +234,6 @@ void read_SN(void);
 void write_SN_flash(void);
 void send_SN_to_master(uint8_t flag);
 void send_version_to_master(uint8_t flag);
-void CAN_SaveIdToFlash(uint8_t can_id);
-void CAN_LoadIdFromFlash(void);
-HAL_StatusTypeDef Flash_Write64BitData(uint32_t address, uint64_t data);
-uint64_t Flash_Read64BitData(uint32_t address);
-uint8_t Flash_TestWrite(void);
 
 #ifdef __cplusplus
 }

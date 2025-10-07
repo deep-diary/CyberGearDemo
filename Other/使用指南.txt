@@ -1,0 +1,53 @@
+1. flash批量保存接口
+ParamManager_RequestParamSaving();保存全部变量至flash里面
+
+增加保存至flash的变量
+在下面中添加
+const ParamDesc_t g_param_desc[] = {
+    // var_ptr, min_val, max_val, attr, default_val（严格顺序初始化，union直接用数值）
+    {&my_can_id, 0, 127, {PARAM_TYPE_UINT8, PARAM_ACCESS_READWRITE, 0}, {.i32 = 127}},
+    {&ENCODER_M1.zeroAngleOffset, -32768, 32767, {PARAM_TYPE_INT16, PARAM_ACCESS_READWRITE, 0}, {.i32 = 0}},
+    {&ENCODER_M1.direction, -1, 1, {PARAM_TYPE_INT16, PARAM_ACCESS_READONLY, 0}, {.i32 = 1}},
+};
+
+#define PARAM_BLOCK_VERSION 0x00010001u//修改值
+
+// 参数名枚举，带组别前缀，并定义每组起始索引//添加需要保存变量
+typedef enum {
+  // Group0
+  PARAM_GROUP0_START = 0,
+  PARAM_0000_CAN_ID  = PARAM_GROUP0_START,
+  PARAM_0001_ENC_ZERO_OFFSET,
+  PARAM_0002_ENC_DIR,
+  PARAM_GROUP0_END,
+
+  // Group1
+  PARAM_GROUP1_START = PARAM_GROUP0_END,
+  // ...
+  PARAM_GROUP1_END   = PARAM_GROUP1_START,
+
+  // Group2
+  PARAM_GROUP2_START = PARAM_GROUP1_END,
+  // ...
+  PARAM_GROUP2_END   = PARAM_GROUP2_START,
+
+  // Group3
+  PARAM_GROUP3_START = PARAM_GROUP2_END,
+  // ...
+  PARAM_GROUP3_END   = PARAM_GROUP3_START,
+
+  PARAM_ENUM_COUNT = PARAM_GROUP3_END
+} ParamName_t;
+
+2.JOG运动
+
+UserAppID =5，切换成jog模式
+JOG.flags.bits.MotorOn =1,开启Jog运动
+
+3.位置环sin跟随
+UserAppID =1，切换成位置控制
+PositionCtrolApp.flags.bits.EnableSineRef =1；
+PositionCtrolApp.flags.bits.MotorOn =1；
+
+4.偏置校准
+UserAppID =2，校准模式

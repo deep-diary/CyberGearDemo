@@ -98,6 +98,7 @@ void TC_Init(PosCtrl_Handle_t *pHandle, PID_Handle_t *pPIDPosReg, SpeednTorqCtrl
   pHandle->PIDPosRegulator = pPIDPosReg;
 
   pHandle->MecAngleOffset = 0;
+  pHandle->RequestToSetCurrentPosAsHome = false;
 }
 
 /**
@@ -264,7 +265,6 @@ void TC_PositionRegulation(PosCtrl_Handle_t *pHandle)
   int32_t wMecAngleRef;
   int32_t wMecAngle;
   int32_t wError;
-  int32_t hTorqueRef_Pos;
   int16_t speedRef;
 
   if (pHandle->PositionCtrlStatus == TC_MOVEMENT_ON_GOING)
@@ -289,7 +289,13 @@ void TC_PositionRegulation(PosCtrl_Handle_t *pHandle)
 
   if (pHandle->PositionControlRegulation == ENABLE)
   {
+    if (pHandle->RequestToSetCurrentPosAsHome) {
+      pHandle->pENC->_Super.wMecAngle = 0;
+      pHandle->Theta = 0.0f;
+      pHandle->RequestToSetCurrentPosAsHome = false;      
+    }
     wMecAngleRef = (int32_t)(pHandle->Theta * RADTOS16);
+    pHandle->wMecAngleRef = wMecAngleRef;
 
     wMecAngle = SPD_GetMecAngle(STC_GetSpeedSensor(pHandle->pSTC));
    
@@ -310,7 +316,6 @@ void TC_PositionRegulation(PosCtrl_Handle_t *pHandle)
 
     //STC_SetControlMode(pHandle->pSTC, MCM_TORQUE_MODE);
      //STC_ExecRamp(pHandle->pSTC, hTorqueRef_Pos, 0);
-    speedRef = speedRef*1.59255;
     STC_SetControlMode(pHandle->pSTC, MCM_SPEED_MODE);
     MC_ProgramSpeedRampMotor1(speedRef, 0);
   }
@@ -446,7 +451,7 @@ void TC_EncAlignmentCommand(PosCtrl_Handle_t *pHandle)
     else
     {
       /* If index is not supprted set the alignment angle as zero reference */
-      pHandle->pENC->_Super.wMecAngle = 0;
+      // pHandle->pENC->_Super.wMecAngle = 0;
       pHandle->AlignmentStatus = TC_ALIGNMENT_COMPLETED;
       pHandle->PositionCtrlStatus = TC_READY_FOR_COMMAND;
       pHandle->PositionControlRegulation = ENABLE;

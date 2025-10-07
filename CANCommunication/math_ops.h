@@ -4,6 +4,7 @@
 #ifndef PI
 #define PI 3.14159265359f
 #endif
+
 #define SQRT3 1.73205080757f
 
 #include "math.h"

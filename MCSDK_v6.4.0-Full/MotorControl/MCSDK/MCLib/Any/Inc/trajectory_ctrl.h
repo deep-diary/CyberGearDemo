@@ -98,9 +98,11 @@ typedef struct
                                                    speed and acceleration */
   bool PositionControlRegulation;      /**< @brief Flag to activate the position control regulation */
   bool EncoderAbsoluteAligned;         /**< @brief Flag to indicate that absolute zero alignment is done */
+  bool RequestToSetCurrentPosAsHome;
   int16_t MecAngleOffset;              /**< @brief Store rotor mechanical angle offset */
   uint32_t TcTick;                     /**< @brief Tick counter in follow mode */
   float SysTickPeriod;                 /**< @brief Time base of follow mode */
+  int32_t wMecAngleRef;
 
   PosCtrlStatus_t PositionCtrlStatus;  /**< @brief Trajectory execution status */
   AlignStatus_t AlignmentCfg;          /**< @brief Indicates that zero index is supported for absolute alignment */

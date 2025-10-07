@@ -48,20 +48,25 @@
 
 /* Extra Includes -------------------------------------------------------------*/
 #include "arm_math.h"
-
+#include "mc_app_hooks_servo.h"
 /* Private constants --------------------------------------------------------*/
-#ifndef UID_BASE
-#define UID_BASE 0x1FFF7590
-#endif
-
-// Flash相关定义
-#define FLASH_BASE                 (0x08000000UL)
-#define FLASH_PAGE_SIZE            0x800U         // 2KB per page
-#define CAN_CONFIG_PAGE_ADDR       (ADDR_FLASH_PAGE_62 + 2040)  // 页面末尾8字节
+//#define UID_BASE 0x1FFF7590
 
 /* Private type -------------------------------------------------------------*/
 
 /* Private variables --------------------------------------------------------*/
+#define DEFAULT_CAN_ID  CAN_ID_MOTOR_DEFAULT
+
+// 定义临时全局变量，便于观测调试
+uint8_t sig_temp_u8;
+uint16_t sig_temp_u16;
+uint32_t sig_temp_u32;
+int8_t sig_temp_i8;
+int16_t sig_temp_i16;
+int32_t sig_temp_i32;
+float sig_temp_float;
+double sig_temp_double;
+
 
 uint8_t my_can_id = CAN_ID_MOTOR_DEFAULT;              // 本机默认ID
 volatile uint8_t can_rx_flag = 0;      // 接收标志
@@ -76,10 +81,6 @@ struct motoStatus mtStatus;
 //----------------------------------------------------Blue---------------------
 
 MotorParams motor_params; // 全局参数实例
-
-extern uint8_t motorOn;
-extern float32_t posRef;
-extern float32_t speedMax;
 
 extern FDCAN_HandleTypeDef hfdcan1;
 
@@ -144,7 +145,7 @@ void can_broadcast_devInfo(void)
 {    
     txCanIdEx.comm_type = CMD_GET_ID;
     txCanIdEx.target_id   = CAN_ID_BROADCAST;
-    txCanIdEx.data2 = canId;    
+    txCanIdEx.data2 = my_can_id;    
     txCanIdEx.res  = 0;
     
     memcpy(can_tx_buffer.data,(const void*)UID_BASE,8); //设备ID
@@ -174,10 +175,12 @@ void send_SN_to_master(uint8_t flag)
 
 void send_version_to_master(uint8_t flag)
 {
-	// 后续改为宏定义
-    uint8_t version[8] = {0x32, 0x30, 0x32, 0x35, 0x30, 0x39, 0x32, 0x31}; // 版本号 20250921 (小端序)
-    memcpy(can_rx_buffer.data,version,  8);
-    CAN_SendResponse(CMD_SEND_VERSION, canMasterId, version, 8);
+    // 编译报错：`array initializer must be an initializer list or string literal`
+    // 原因是 `uint8_t` 数组不能直接用字符串字面量初始化。
+    // 应使用 `char` 数组来初始化字符串字面量，然后将其指针转换为 `uint8_t*` 传递。
+    const char version_str[8] = SOFTWARE_VERSION; // 版本号，直接从宏定义字符串初始化
+
+    CAN_SendResponse(CMD_SEND_VERSION, canMasterId, (uint8_t*)version_str, 8); // 发送版本号的8个字节
 }
 
 
@@ -196,7 +199,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 void can_message_transmit(FDCAN_HandleTypeDef *hfdcan, CanTxMsg *tx_msg) {
     FDCAN_TxHeaderTypeDef tx_header;
 
-    tx_msg->ext_id.id_info.data2 = canId;
+    tx_msg->ext_id.id_info.data2 = my_can_id;
     tx_msg->ext_id.id_info.target_id = canMasterId| (((uint16_t)*((uint8_t *)(&mtStatus)))<<8);
 
     // 填充帧头
@@ -227,20 +230,86 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
     float float_value;
     int16_t int16_value;
     uint8_t uint8_value;
+    float jog_spd;
+    uint8_t jog_cmd;
     memcpy(&float_value, data_bytes, sizeof(float));
     memcpy(&int16_value, data_bytes, sizeof(int16_t));
-    uint8_value = data_bytes[0]; // 单字节类型直接用第一个字节
+    uint8_value = data_bytes[4]; // 单字节类型直接用第一个字节
+    float_value = *(float *)(data_bytes+4);
     
     ParamWriteResult result = PARAM_WRITE_OK;
     float Parameter_data;
     // 参数写入分支（基于表格索引）
     switch (param_index) {
         // ======== 运行模式 (uint8) ========
+
+        case PARAM_SIN_SWITCH:
+            if (uint8_value < 0 || uint8_value > 1) {
+                result = PARAM_OUT_OF_RANGE;
+            } else {
+                if(UserAppID == USER_APP_NORMAL_POS_CTRL)
+                {
+                    PositionCtrolApp.flags.bits.EnableSineRef = uint8_value;
+                }
+            }
+            break;
+
+        case PARAM_SIN_FREQ:
+            if (float_value < 0 || float_value > 1000.0f) {
+                result = PARAM_OUT_OF_RANGE;
+            } else {
+                if(UserAppID == USER_APP_NORMAL_POS_CTRL)
+                {
+                    PositionCtrolApp.Fs = 1000 / float_value ;  // Fs 为时间参数，单位是ms，而传递过来的参数是频率
+                }
+            }
+            break;
+
+        case PARAM_SIN_AMP:
+            if (float_value < 0 || float_value > 1000.0f) {
+                result = PARAM_OUT_OF_RANGE;
+            } else {
+                if(UserAppID == USER_APP_NORMAL_POS_CTRL)
+                {
+                    PositionCtrolApp.RefSinAmp = float_value * 9;  // 9 为减速比
+                }
+            }
+            break;
+            
         case PARAM_RUN_MODE:
-            if (uint8_value < MODE_MOTION_CTRL || uint8_value > MODE_CURRENT) {
+            if (uint8_value < MODE_MOTION_CTRL || uint8_value > MODE_JOG) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
                 motor_params.run_mode = (MotorRunMode)uint8_value;
+                RequestedUserAppID = (USER_APP_ID)uint8_value;
+
+                if(motor_params.run_mode == MODE_JOG)  // 临时转换
+                {
+                    RequestedUserAppID = USER_APP_JOG;
+                }
+
+                if(RequestedUserAppID == USER_APP_JOG)
+                {
+                    jog_cmd = data_bytes[5];
+
+                    sig_temp_u16 = data_bytes[6] << 8 | data_bytes[7];
+
+                    sig_temp_i32 = (int32_t)(sig_temp_u16) - 0x7fff; //0x7fff 为速度0 的值
+
+                    sig_temp_float = (sig_temp_i32 * 30.0f) /32768.0f;// 30 表示最大速度，15 为位移，相当于除32768， 也就是30rad/s 速度对应的最大有符号16进制值
+
+                    jog_spd = sig_temp_float;
+                    if(jog_cmd == 1)
+                    {
+                        JogApp.flags.bits.MotorOn = true;
+                        JogApp.JogSpeed = jog_spd;
+                    }
+                    else
+                    {
+                        JogApp.flags.bits.MotorOn = false;
+                        JogApp.JogSpeed = 0;
+                    }
+                }
             }
             break;
             
@@ -295,20 +364,20 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
         case PARAM_LOC_REF://位置模式参考位置
 
             Parameter_data  = *(float *)(data_bytes+4);
-            posRef = Parameter_data*9;
+            PositionCtrolApp.PosRef = Parameter_data*9;
             break;
             
         case PARAM_LIMIT_SPD: // 位置模式速度限制
-            Parameter_data  = *(float *)(data_bytes+4);
-            speedMax = Parameter_data*9;
-        if (speedMax > 270.0)
-           {
-            speedMax = 270.0;
-           }
-           else if (speedMax < -270.0) 
-           {
-            speedMax = -270.0;
-           }
+        //     Parameter_data  = *(float *)(data_bytes+4);
+        //     speedMax = Parameter_data*9;
+        // if (speedMax > 270.0)
+        //    {
+        //     speedMax = 270.0;
+        //    }
+        //    else if (speedMax < -270.0) 
+        //    {
+        //     speedMax = -270.0;
+        //    }
             break;
             
         case PARAM_LIMIT_CUR: // 电流限制
@@ -360,7 +429,7 @@ void CAN_ProcessMessages(void) {
     if(rxCanIdEx.comm_type != CMD_MOTOR_CTRL)
     {
         canMasterId = rxCanIdEx.data2 & 0X00FF;
-    }
+    }    
     
     // 忽略非本机消息（广播0xFE除外）
     uint8_t target_id = rx_id_union.id_info.target_id;
@@ -405,16 +474,15 @@ switch (cmd_type) {
         }
         // ---- 类型3：电机使能 ----
         case CMD_ENABLE:
-            motorOn =true;
+            PositionCtrolApp.flags.bits.MotorOn =true;
             mymotorcanid = my_can_id;//按照手册应答帧格式更新本机ID
             CAN_SendResponseCmdType2(host_id, mymotorcanid); // 应答使能状态
             break;
 
         // ---- 类型4：紧急停止 ----
         case CMD_STOP:
-            motorOn =false;
-mymotorcanid = my_can_id;//按照手册应答帧格式更新本机ID
-            CAN_SendResponseCmdType2(host_id, mymotorcanid); // 应答使能状态            
+            PositionCtrolApp.flags.bits.MotorOn =false;
+           mymotorcanid = my_can_id;//按照手册应答帧格式更新本机ID
             if(can_rx_buffer.data[1]==0x01)
 			{
 				factory_test();
@@ -442,37 +510,35 @@ mymotorcanid = my_can_id;//按照手册应答帧格式更新本机ID
 			}
             else
             {
-                CAN_SendResponseCmdType2(canMasterId, canId); // 应答使能状态
+                CAN_SendResponseCmdType2(canMasterId, mymotorcanid); // 应答使能状态
             }
+            break;
+        // ---- 类型5：编码器标定复位 ----
+        case CMD_CALI:
+            RequestedUserAppID = USER_APP_ENCODER_ALIGNMENT;
+            EncoderAlignmentApp.flags.bits.Start = true;
+            EncoderAlignmentApp.flags.bits.EnableSave2EE = true;
+             CAN_SendResponse(CMD_CALI, host_id, NULL, 0); // 空数据应答
             break;
 
         // ---- 类型6：设机械零位 ----
         case CMD_SET_ZERO:
-            if(~motorOn)
-            {
-                // 需要实现机械零位标定
-                // Motor_CalibrateZeroPoint();
-            }
-            CAN_SendResponse(CMD_SET_ZERO, canMasterId, NULL, 8); // 空数据应答
+            // Motor_CalibrateZeroPoint();
+            CAN_SendResponse(CMD_SET_ZERO, host_id, NULL, 0); // 空数据应答
             break;
 
         // ---- 类型7：修改CAN ID ----
         case CMD_SET_CANID:
-            my_can_id = (rxCanIdEx.data2 & 0XFF00)>>8; // 新ID存首字节
-            canId = my_can_id;
-            
-
-            // 设置扩展帧ID中的反馈类型
+            my_can_id = (rxCanIdEx.data2 & 0XFF00)>>8; 
+            ParamManager_RequestParamSaving();//保存变量至flash配置
+                        // 设置扩展帧ID中的反馈类型
             can_tx_buffer.ext_id.id_info.comm_type = CMD_SET_CANID;
 
             // 将can_tx_buffer.data 清空，并设置需要发送的数据
             memset(can_tx_buffer.data, 0, 8);
-            can_tx_buffer.data[0] = canId;
+            can_tx_buffer.data[0] = my_can_id;
             // 发送帧
             can_txd();
-            
-            // 保存CAN ID到flash
-            CAN_SaveIdToFlash(canId);
             break;
 
         // ---- 类型17：参数读取 ----
@@ -598,7 +664,7 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
     // ===== 2. 填充8字节数据区 =====
     int p_int = float_to_uint(theta_mech, P_MIN, P_MAX, 16);
     int v_int = float_to_uint(dtheta_mech, V_MIN, V_MAX, 16);
-    int t_int = float_to_uint(i_q.q, T_MIN, T_MAX, 16);  // =（torque/12）*32767+32767
+    int t_int = float_to_uint(i_q.q, TORQUE_MIN, TORQUE_MAX, 16);  // =（torque/12）*32767+32767
         //if(pos.MotorType==0) t_int = float_to_uint(t, -10.8f, 10.8f, 16);
         //else if(pos.MotorType==1) t_int = float_to_uint(t, -8.4f, 8.4f, 16);
     int temperature =25*10;
@@ -626,138 +692,5 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
 
     // ===== 4. 发送帧 =====
     HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &tx_header, tx_data);
-}
-
-/**
- * @brief 保存CAN ID到Flash
- * @param can_id 要保存的CAN ID
- */
-void CAN_SaveIdToFlash(uint8_t can_id) {
-    uint64_t dataToWrite = 0;
-    
-    // 将CAN ID放入64位数据的低8位
-    dataToWrite = (uint64_t)can_id;
-    
-    // 添加标识符到高16位，用于验证数据有效性
-    dataToWrite |= ((uint64_t)0xCAFE << 48);  // 使用0xCAFE作为CAN ID数据的标识符
-    
-    // 写入到Flash页面末尾，减少与其他数据的冲突
-    HAL_StatusTypeDef status = Flash_Write64BitData(CAN_CONFIG_PAGE_ADDR, dataToWrite);
-    
-    if (status != HAL_OK) {
-        // 可以在这里添加错误处理
-        // printf("Error saving CAN ID to flash: %d\n", status);
-    }
-}
-
-/**
- * @brief 从Flash加载CAN ID
- */
-void CAN_LoadIdFromFlash(void) {
-    // 从Flash读取64位数据
-    uint64_t flashData = Flash_Read64BitData(CAN_CONFIG_PAGE_ADDR);
-    
-    // 检查标识符是否正确（高16位应该是0xCAFE）
-    uint16_t identifier = (uint16_t)(flashData >> 48);
-    
-    if (identifier == 0xCAFE) {
-        // 提取CAN ID（低8位）
-        uint8_t saved_can_id = (uint8_t)(flashData & 0xFF);
-        
-        // 验证CAN ID的有效性（1-127范围）
-        if (saved_can_id >= 1 && saved_can_id <= 127) {
-            my_can_id = saved_can_id;
-            canId = my_can_id;
-        } else {
-            // 如果保存的ID无效，使用默认值
-            my_can_id = CAN_ID_MOTOR_DEFAULT;
-            canId = my_can_id;
-        }
-    } else {
-        // 如果标识符不匹配，使用默认值
-        my_can_id = CAN_ID_MOTOR_DEFAULT;
-        canId = my_can_id;
-    }
-}
-
-/**
- * @brief 通用的64位数据Flash写入函数
- * @param address Flash地址
- * @param data 64位数据
- * @retval HAL状态
- */
-HAL_StatusTypeDef Flash_Write64BitData(uint32_t address, uint64_t data) {
-    HAL_StatusTypeDef status;
-    FLASH_EraseInitTypeDef eraseConfig;
-    uint32_t pageError;
-    
-    // 禁用中断
-    __disable_irq();
-    
-    // 解锁Flash
-    HAL_FLASH_Unlock();
-    
-    // 清除Flash错误标志
-    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS);
-    
-    // 计算页面号（ADDR_FLASH_PAGE_62是地址，需要转换为页面号）
-    uint32_t pageNumber = (address - FLASH_BASE) / FLASH_PAGE_SIZE;
-    
-    // 配置擦除参数
-    eraseConfig.TypeErase = FLASH_TYPEERASE_PAGES;
-    eraseConfig.Banks = FLASH_BANK_1;
-    eraseConfig.Page = pageNumber;  // 使用计算出的页面号
-    eraseConfig.NbPages = 1;
-    
-    // 擦除Flash页
-    status = HAL_FLASHEx_Erase(&eraseConfig, &pageError);
-    if (status != HAL_OK) {
-        HAL_FLASH_Lock();
-        __enable_irq();
-        return status;
-    }
-    
-    // 写入64位数据（使用双字编程）
-    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, data);
-    
-    // 锁定Flash
-    HAL_FLASH_Lock();
-    
-    // 恢复中断
-    __enable_irq();
-    
-    return status;
-}
-
-/**
- * @brief 从Flash读取64位数据
- * @param address Flash地址
- * @retval 64位数据
- */
-uint64_t Flash_Read64BitData(uint32_t address) {
-    return *(volatile uint64_t*)address;
-}
-
-/**
- * @brief 测试Flash写入功能
- * @retval 测试结果 (0=成功, 1=失败)
- */
-uint8_t Flash_TestWrite(void) {
-    uint64_t testData = 0x123456789ABCDEF0;
-    uint64_t readData;
-    
-    // 写入测试数据
-    HAL_StatusTypeDef status = Flash_Write64BitData(ADDR_FLASH_PAGE_62, testData);
-    if (status != HAL_OK) {
-        return 1; // 写入失败
-    }
-    
-    // 读取数据验证
-    readData = Flash_Read64BitData(ADDR_FLASH_PAGE_62);
-    if (readData != testData) {
-        return 1; // 读取数据不匹配
-    }
-    
-    return 0; // 测试成功
 }
 

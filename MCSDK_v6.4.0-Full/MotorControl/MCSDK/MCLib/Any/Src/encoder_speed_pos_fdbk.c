@@ -220,10 +220,10 @@ if (pHandle->direction >0){
     int16_t hMecSpeedDpp = mecAngle - hMecAnglePrev;
     
     if (pHandle->direction >0){
-    pHandle->_Super.wMecAngle += ((int32_t)hMecSpeedDpp);
-} else {
-    pHandle->_Super.wMecAngle -= ((int32_t)hMecSpeedDpp);
-}
+    	pHandle->_Super.wMecAngle += ((int32_t)hMecSpeedDpp);
+	} else {
+    	pHandle->_Super.wMecAngle -= ((int32_t)hMecSpeedDpp);
+	}
 
     int16_t deltaCapture    = pHandle->latestCapture - pHandle->PreviousCapture;
     int16_t halfPulseNumber = pHandle->PulseNumber >> 1;

@@ -1,12 +1,12 @@
 /**
   ******************************************************************************
-  * @file    mc_app_hooks.h
-  * @author  Motor Control SDK Team, ST Microelectronics
-  * @brief   This file implements tasks definition.
+  * @file    NVMemory_Allocation.h,
+  * @author  Motor Control Comptence Center, ST Microelectronics
+  * @brief   NV memory allocation
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2024 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under Ultimate Liberty license
@@ -15,12 +15,10 @@
   *                             www.st.com/SLA0044
   *
   ******************************************************************************
-  * @ingroup MCAppHooks
   */
-
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef MC_APP_HOOKS_H
-#define MC_APP_HOOKS_H
+#ifndef __NVMemory_Allocation_H
+#define __NVMemory_Allocation_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,37 +26,25 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 
-/** @addtogroup MCSDK
-  * @{
-  */
 
-/** @addtogroup MCTasks
-  * @{
-  */
+/* Exported constants --------------------------------------------------------*/
 
-/** @addtogroup MCAppHooks
- * @{
- */
+/* Exported type -------------------------------------------------------------*/
+enum {
+	NV_ADDR_RESERVED = 0,
+  NV_ADDR_CAN_ID,
+	NV_ADDR_ENCODER_ZEROANGLE_OFFSET,
+	NV_ADDR_ENCODER_DIR,
+};
+/* Exported variables --------------------------------------------------------*/
 
 /* Exported functions ------------------------------------------------------- */
-
-/* Hook function called at end of MCboot() */
-void MC_APP_BootHook(void);
-
-/* Hook function called right after the Medium Frequency Task of Motor 1 */
-void MC_APP_PostMediumFrequencyHook_M1(void);
-
-
-/** @} */
-
-/** @} */
-
-/** @} */
 
 #ifdef __cplusplus
 }
 #endif /* __cpluplus */
 
-#endif /* MC_APP_HOOKS_H */
+#endif /* __NVMemory_Allocation_H */
 
-/******************* (C) COPYRIGHT 2024 STMicroelectronics *****END OF FILE****/
+/************************ (C) COPYRIGHT 2019 STMicroelectronics *****END OF FILE****/
+		

@@ -1564,10 +1564,10 @@ __weak void *R3_2_TIMx_UP_IRQHandler(PWMC_R3_2_Handle_t *pHandle)
     if (OPAMPParams != NULL)
     {
       /* We can not change OPAMP source if ADC acquisition is ongoing (Dual motor with internal opamp use case) */
-      while (0x0u != pHandle->pParams_str->ADCDataReg1[pHandle->_Super.Sector]->JSQR)
-      {
-        /* Nothing to do */
-      }
+      // while (0x0u != pHandle->pParams_str->ADCDataReg1[pHandle->_Super.Sector]->JSQR)
+      // {
+      //   /* Nothing to do */
+      // }
       /* We need to manage the Operational amplifier internal output enable - Dedicated to G4 and the VPSEL selection */
       OpampConfig = OPAMPParams->OPAMPConfig1[pHandle->_Super.Sector];
       if (OpampConfig != OPAMP_UNCHANGED)

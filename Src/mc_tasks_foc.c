@@ -34,9 +34,10 @@
 #include "parameters_conversion.h"
 #include "mcp_config.h"
 #include "mc_app_hooks.h"
+#include "mc_app_hooks_servo.h"
 
 /* USER CODE BEGIN Includes */
-// #include"dataAcq.h"
+#include"dataAcq.h"
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private define */
@@ -187,6 +188,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
   mode = MCI_GetControlMode(&Mci[M1]);
   (void)ENC_CalcAvrgMecSpeedUnit(&ENCODER_M1, &wAux);
   PQD_CalcElMotorPower(pMPM[M1]);
+  MC_APP_PrevMediumFrequencyHook_M1();
 
   if (MCI_GetCurrentFaults(&Mci[M1]) == MC_NO_FAULTS)
   {
@@ -299,6 +301,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
 
                 if (mode == MCM_OPEN_LOOP_VOLTAGE_MODE || mode == MCM_OPEN_LOOP_CURRENT_MODE)
                 {
+                MC_APP_StartRunHook_M1();
                 MCI_ExecBufferedCommands(&Mci[M1]); /* Exec the speed ramp even in OL */
                 Mci[M1].State = RUN;
                 }
@@ -445,7 +448,6 @@ __weak void TSK_MediumFrequencyTaskM1(void)
               STC_ForceSpeedReferenceToCurrentSpeed(pSTC[M1]); /* Init the reference speed to current speed */
               MCI_ExecBufferedCommands(&Mci[M1]); /* Exec the speed ramp after changing of the speed sensor */
               FOC_CalcCurrRef(M1);
-              //MC_APP_StartRunHook_M1();
               Mci[M1].State = RUN;
             }
             else
@@ -500,6 +502,7 @@ __weak void FOC_Clear(uint8_t bMotor)
   if ( mode != MCM_OPEN_LOOP_VOLTAGE_MODE && mode != MCM_OPEN_LOOP_CURRENT_MODE)
   {
     FOCVars[bMotor].Iqdref = NULL_qd;
+    Mci[bMotor].Iqdref = NULL_qd;
   }
   else
   {
@@ -536,7 +539,7 @@ __weak void FOC_InitAdditionalMethods(uint8_t bMotor) //cstat !RED-func-no-effec
     else
     {
   /* USER CODE BEGIN FOC_InitAdditionalMethods 0 */
-
+      MC_APP_StartRunHook_M1();
   /* USER CODE END FOC_InitAdditionalMethods 0 */
     }
 }
@@ -573,8 +576,7 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
                && (mode != MCM_OPEN_LOOP_VOLTAGE_MODE && mode != MCM_OPEN_LOOP_CURRENT_MODE))
   {
     FOCVars[bMotor].hTeref = STC_CalcTorqueReference(pSTC[bMotor]);
-    IqdTmp.q = FOCVars[bMotor].hTeref;
-
+    IqdTmp.q = MC_APP_CalcTorqueReferenceHook(FOCVars[bMotor].hTeref);
   }
   else
   {
@@ -593,6 +595,12 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
   /* USER CODE END FOC_CalcCurrRef 1 */
 }
 
+float_t theta_mech =0;
+float_t dtheta_mech =0;
+qd_f_t i_q ;
+uint16_t LineHALLA =0;
+uint16_t LineHALLB =0;
+
 #if defined (CCMRAM)
 #if defined (__ICCARM__)
 #pragma location = ".ccmram"
@@ -600,12 +608,6 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
 __attribute__((section (".ccmram")))
 #endif
 #endif
-float_t theta_mech =0;
-float_t dtheta_mech =0;
-qd_f_t i_q ;
-uint16_t LineHALLA =0;
-uint16_t LineHALLB =0;
-extern uint8_t calibrationflag;
 /**
   * @brief  Executes the Motor Control duties that require a high frequency rate and a precise timing.
   *
@@ -631,7 +633,7 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
   /* USER CODE END HighFrequencyTask SINGLEDRIVE_1 */
   hFOCreturn = FOC_CurrControllerM1();
   /* USER CODE BEGIN HighFrequencyTask SINGLEDRIVE_2 */
-
+  MC_APP_PostHighFrequencyHook_M1();
   /* USER CODE END HighFrequencyTask SINGLEDRIVE_2 */
   if(hFOCreturn == MC_DURATION)
   {
@@ -656,7 +658,6 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
     i_q = MC_GetIqdMotor1_F();
     LineHALLA  =  RCM_GetRegularConv(&LineHALL_A);
     LineHALLB  =  RCM_GetRegularConv(&LineHALL_B);
-    //DumpTrace();
     /* USER CODE END HighFrequencyTask SINGLEDRIVE_3 */
   }
 
