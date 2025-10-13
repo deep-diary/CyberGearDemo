@@ -30,6 +30,12 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 #define CPG_FREQUENCY_SCALE_BITS 10
+
+typedef enum {
+  CPG_BIPOLAR_MODE = 0,
+  CPG_SINGLEPOLAR_MODE
+} CPG_OUTPUT_MODE;
+
 /* Exported type -------------------------------------------------------------*/
 typedef struct ChirpGenerator {
   RampExtMngr_Handle_t rampMngr;
@@ -47,6 +53,8 @@ typedef struct ChirpGenerator {
   /* for debug */
   uint16_t hAngle; 
   uint16_t hPrevAngle;
+
+  CPG_OUTPUT_MODE OutputMode;
 
   bool chirpMode;
 

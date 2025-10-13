@@ -72,6 +72,7 @@ void SpeedloopBWTestApp_OnStart(UserApplication_Handle_t* pSuper)
   }
   pHandle->pSin->hAmplitude          = pHandle->SpdRefSinAmp_SpeedUnit;
   pHandle->pSin->hDurationms         = pHandle->SpdSweepDuration_ms;
+  pHandle->pSin->OutputMode          = CPG_BIPOLAR_MODE;
 
   SineGenerator_SetUpdateFrequency(pHandle->pSin, pHandle->Fs);
   SineGenerator_Reset(pHandle->pSin);

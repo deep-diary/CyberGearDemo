@@ -63,10 +63,20 @@
 void SineGenerator_Reset(SineGenerator_Handle_t* pHandle)
 {
   pHandle->wInvUpdateFrequency = (1UL << 31) / (pHandle->rampMngr.FrequencyHz * 10);
-  pHandle->wAngle              = 0;
+  if (CPG_SINGLEPOLAR_MODE == pHandle->OutputMode) {
+    pHandle->wAngle              = -(1L << (TRIAG_THETA_Q - 2)); /* -90 degree, so that start speed = 0*/
+    /* Set amplitude to half to avoid overflow */
+    pHandle->hAmplitude >>= 1;
+  } else {
+    pHandle->wAngle              = 0;
+  }
   pHandle->output              = 0;
-  pHandle->hAngle              = 65535;
-  pHandle->hPrevAngle          = 65535;
+  #if CPG_USE_MC_MATH
+  pHandle->hAngle              = pHandle->wAngle;
+  #else
+  pHandle->hAngle              = (pHandle->wAngle >> (TRIAG_THETA_Q - 16));
+  #endif
+  pHandle->hPrevAngle          = pHandle->hAngle;
   if (pHandle->hStartFrequency01Hz != pHandle->hEndFrequency01Hz) {
     REMNG_Init(&pHandle->rampMngr);
     pHandle->wAngleStep = 0;
@@ -96,25 +106,41 @@ int16_t SineGenerator_Update(SineGenerator_Handle_t* pHandle)
     pHandle->hAngle =  pHandle->wAngle;
     Trig_Components sincos        = MCM_Trig_Functions(pHandle->wAngle);
     pHandle->wCurrentFrequencyExt = frequencyExt;
-    pHandle->output               = (int32_t)pHandle->hAmplitude * sincos.hSin >> 15;
+    if (CPG_SINGLEPOLAR_MODE == pHandle->OutputMode) {
+      pHandle->output             = ((int32_t)pHandle->hAmplitude * sincos.hSin >> 15) + pHandle->hAmplitude;
+    } else {
+      pHandle->output             = (int32_t)pHandle->hAmplitude * sincos.hSin >> 15;
+    }
 #else
     uint32_t angleStep =
         ((int64_t)frequencyExt * pHandle->wInvUpdateFrequency) >> (31 - (TRIAG_THETA_Q - CPG_FREQUENCY_SCALE_BITS));
     pHandle->wAngle += angleStep;
     pHandle->hAngle  = (pHandle->wAngle >> (TRIAG_THETA_Q - 16));
     Triangle_t sincos = SinCos(pHandle->wAngle);
-    pHandle->output   = (int32_t)pHandle->hAmplitude * sincos._sin >> 15;
+    if (CPG_SINGLEPOLAR_MODE == pHandle->OutputMode) {
+      pHandle->output             = ((int32_t)pHandle->hAmplitude * sincos._sin >> 15) + pHandle->hAmplitude;
+    } else {
+      pHandle->output             = (int32_t)pHandle->hAmplitude * sincos._sin >> 15;
+    }
 #endif
 
   } else {
     pHandle->wAngle += pHandle->wAngleStep;
 #ifdef CPG_USE_MC_MATH
     Trig_Components sincos = MCM_Trig_Functions(pHandle->wAngle);
-    pHandle->output        = (int32_t)pHandle->hAmplitude * sincos.hSin >> 15;
+    if (CPG_SINGLEPOLAR_MODE == pHandle->OutputMode) {
+      pHandle->output             = ((int32_t)pHandle->hAmplitude * sincos.hSin >> 15) + pHandle->hAmplitude;
+    } else {
+      pHandle->output             = (int32_t)pHandle->hAmplitude * sincos.hSin >> 15;
+    }
     pHandle->hAngle        = pHandle->wAngle;
 #else
     Triangle_t sincos = SinCos(pHandle->wAngle);
-    pHandle->output   = (int32_t)pHandle->hAmplitude * sincos._sin >> 15;
+    if (CPG_SINGLEPOLAR_MODE == pHandle->OutputMode) {
+      pHandle->output             = ((int32_t)pHandle->hAmplitude * sincos._sin >> 15) + pHandle->hAmplitude;
+    } else {
+      pHandle->output             = (int32_t)pHandle->hAmplitude * sincos._sin >> 15;
+    }
     pHandle->hAngle   = (pHandle->wAngle >> (TRIAG_THETA_Q - 16));
 #endif
   }

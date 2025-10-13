@@ -46,6 +46,7 @@ static void PositionCtrlApp_SetupSineGenerator(PositionCtrlApp_Handle_t* pHandle
   }
   pHandle->pSin->hAmplitude  = INT16_MAX;
   pHandle->pSin->hDurationms = pHandle->SweepDuration_ms;
+  pHandle->pSin->OutputMode = CPG_SINGLEPOLAR_MODE;
 
   SineGenerator_SetUpdateFrequency(pHandle->pSin, pHandle->Fs);
   SineGenerator_Reset(pHandle->pSin);
