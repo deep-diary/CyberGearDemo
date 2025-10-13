@@ -383,7 +383,7 @@ void TC_MoveExecution(PosCtrl_Handle_t *pHandle)
 
   pHandle->ElapseTime += pHandle->SamplingTime;
 
-  if (TC_RampCompleted(pHandle))
+  if (TC_RampCompleted(pHandle) || TC_TARGET_POSITION_REACHED == pHandle->PositionCtrlStatus)
   {
     if (TC_ZERO_ALIGNMENT_START == pHandle->AlignmentStatus)
     {

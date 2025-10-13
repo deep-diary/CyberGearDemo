@@ -56,9 +56,10 @@ typedef struct {
     uint16_t all;
     struct
     {
-      uint16_t MotorOn       : 1;
-      uint16_t FaultReset    : 1;
+      uint16_t MotorOn : 1;
+      uint16_t FaultReset : 1;
       uint16_t EnableSineRef : 1;
+      uint16_t PrevEnableSineRef : 1;
     } bits;
 
   } flags;
