@@ -59,6 +59,7 @@ void JogApp_OnBackground(UserApplication_Handle_t* pSuper)
             int32_t temp = pHandle->JogSpeed;
             temp = temp >= 0 ? temp : -temp;
             temp *= pHandle->Acc;
+            VSS_SetMecAcceleration(pHandle->pMCI->pVSS, 0, 0);
             MCI_SetCurrentReferences(pHandle->pMCI, Iqd);
             MCI_ExecSpeedRamp(pHandle->pMCI, pHandle->JogSpeed, temp);
             MCI_StartMotor(pHandle->pMCI);
