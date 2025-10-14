@@ -44,14 +44,14 @@ extern "C" {
 void JogApp_OnReset(UserApplication_Handle_t* pSuper)
 {
     JogApp_Handle_t* pHandle = (JogApp_Handle_t*)pSuper;
-    MCI_SetOpenLoopCurrentMode(pHandle->pMCI);
+    MCI_SetOpenLoopCurrentMode(pSuper->pMCI);
 }
 
 void JogApp_OnBackground(UserApplication_Handle_t* pSuper)
 {
     JogApp_Handle_t* pHandle = (JogApp_Handle_t*)pSuper;
 
-    switch (MCI_GetSTMState(pHandle->pMCI))
+    switch (MCI_GetSTMState(pSuper->pMCI))
     {
     case IDLE:
         if (pHandle->flags.bits.MotorOn) {
@@ -59,16 +59,16 @@ void JogApp_OnBackground(UserApplication_Handle_t* pSuper)
             int32_t temp = pHandle->JogSpeed;
             temp = temp >= 0 ? temp : -temp;
             temp *= pHandle->Acc;
-            VSS_SetMecAcceleration(pHandle->pMCI->pVSS, 0, 0);
-            MCI_SetCurrentReferences(pHandle->pMCI, Iqd);
-            MCI_ExecSpeedRamp(pHandle->pMCI, pHandle->JogSpeed, temp);
-            MCI_StartMotor(pHandle->pMCI);
+            VSS_SetMecAcceleration(pSuper->pMCI->pVSS, 0, 0);
+            MCI_SetCurrentReferences(pSuper->pMCI, Iqd);
+            MCI_ExecSpeedRamp(pSuper->pMCI, pHandle->JogSpeed, temp);
+            MCI_StartMotor(pSuper->pMCI);
         }
         break;
 
     case RUN:
         if (!pHandle->flags.bits.MotorOn) {
-            MCI_StopMotor(pHandle->pMCI);
+            MCI_StopMotor(pSuper->pMCI);
         }
     
     default:

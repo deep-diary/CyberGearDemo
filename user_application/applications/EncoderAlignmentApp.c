@@ -63,11 +63,11 @@ void EncoderAlignmentApp_OnBackground(UserApplication_Handle_t* pSuper)
             }
             pHandle->pEncoder->zeroAngleOffset = 0;
             pHandle->pEncoder->direction = 1;
-            MCI_SetCurrentReferences(pHandle->pMCI, Iqd);
-            MCI_SetOpenLoopCurrentMode(pHandle->pMCI);
-            VSS_SetMecAcceleration(pHandle->pMCI->pVSS, 0, 0);
-            VSS_SetElAngle(pHandle->pMCI->pVSS, 0);
-            MCI_StartMotor(pHandle->pMCI);            
+            MCI_SetCurrentReferences(pSuper->pMCI, Iqd);
+            MCI_SetOpenLoopCurrentMode(pSuper->pMCI);
+            VSS_SetMecAcceleration(pSuper->pMCI->pVSS, 0, 0);
+            VSS_SetElAngle(pSuper->pMCI->pVSS, 0);
+            MCI_StartMotor(pSuper->pMCI);            
             pHandle->state = EAA_ALIGNMENT;
             pHandle->flags.bits.Start = false;
             pHandle->TimeStamp = HAL_GetTick();
@@ -77,23 +77,23 @@ void EncoderAlignmentApp_OnBackground(UserApplication_Handle_t* pSuper)
     case EAA_ALIGNMENT: {
         uint32_t duration = HAL_GetTick() - pHandle->TimeStamp;
         if (duration > pHandle->AlignmentDuration) {
-            if (RUN == MCI_GetSTMState(pHandle->pMCI)) {
+            if (RUN == MCI_GetSTMState(pSuper->pMCI)) {
                 pHandle->pEncoder->zeroAngleOffset = -pHandle->pEncoder->_Super.hMecAngle;
                 /* Delay 100ms to allow the wmecangle being updated, this routine can only be called in background*/
                 HAL_Delay(100);
                 pHandle->AlignedMecAngle = pHandle->pEncoder->_Super.hMecAngle;
-                VSS_SetMecAcceleration(pHandle->pMCI->pVSS, (int16_t)(0.4f * SPEED_UNIT), 1.0f);
+                VSS_SetMecAcceleration(pSuper->pMCI->pVSS, (int16_t)(0.4f * SPEED_UNIT), 1.0f);
                 pHandle->TimeStamp = HAL_GetTick();
                 /* without saving result */
                 pHandle->state = EAA_SPINING;
             } else {
-                MCI_StopMotor(pHandle->pMCI);
+                MCI_StopMotor(pSuper->pMCI);
                 pHandle->state = EAA_IDLE;
             }
         } else {
             qd_t Iqd = {0,0};
             Iqd.d = (duration * pHandle->IdrefStep) >> EAA_ID_SCALE_BITS;
-            MCI_SetCurrentReferences(pHandle->pMCI, Iqd);
+            MCI_SetCurrentReferences(pSuper->pMCI, Iqd);
         }
 
     }
@@ -113,14 +113,14 @@ void EncoderAlignmentApp_OnBackground(UserApplication_Handle_t* pSuper)
             }
 
             if (EAA_FINISHED == pHandle->state) {
-                MCI_StopMotor(pHandle->pMCI);
+                MCI_StopMotor(pSuper->pMCI);
                 pSuper->OneShootTaskFinished = true;
                 if (pHandle->flags.bits.EnableSave2EE) {
                     ParamManager_RequestParamSaving();
                 }
             }
         } else {
-            MCI_StopMotor(pHandle->pMCI);
+            MCI_StopMotor(pSuper->pMCI);
             pSuper->OneShootTaskFinished = true;
             pHandle->state = EAA_IDLE;
         }

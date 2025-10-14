@@ -26,6 +26,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "mc_type.h"
+#include "mc_interface.h"
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -35,6 +36,7 @@ typedef struct UserApplication_Handle UserApplication_Handle_t;
 
 struct UserApplication_Handle
 {
+	MCI_Handle_t* pMCI;
 
 	void (*pFctInit)(UserApplication_Handle_t* pHandle);
 	void (*pFctReset)(UserApplication_Handle_t* pHandle);

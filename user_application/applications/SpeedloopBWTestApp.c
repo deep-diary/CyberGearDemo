@@ -78,17 +78,17 @@ void SpeedloopBWTestApp_OnStart(UserApplication_Handle_t* pSuper)
   SineGenerator_Reset(pHandle->pSin);
 
   /* This will set the control mode to speed mode */
-  MCI_ExecSpeedRamp(pHandle->pMCI, 0, 0);
+  MCI_ExecSpeedRamp(pSuper->pMCI, 0, 0);
 }
 
 void SpeedloopBWTestApp_PreMediumFrequencyUpdate(UserApplication_Handle_t* pSuper)
 {
   SpeedloopBWTestApp_Handle_t* pHandle = (SpeedloopBWTestApp_Handle_t*)pSuper;
-  if (MCI_GetSTMState(pHandle->pMCI) == RUN) {
+  if (MCI_GetSTMState(pSuper->pMCI) == RUN) {
     int16_t SpeedRefUnit = SineGenerator_Update(pHandle->pSin);
-    MCI_ExecSpeedRamp(pHandle->pMCI, SpeedRefUnit, 0);
+    MCI_ExecSpeedRamp(pSuper->pMCI, SpeedRefUnit, 0);
     if (pHandle->pSin->chirpMode && SineGenerator_IsCompleted(pHandle->pSin)) {
-      MCI_StopMotor(pHandle->pMCI);
+      MCI_StopMotor(pSuper->pMCI);
     }
   }
 }

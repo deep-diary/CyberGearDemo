@@ -65,15 +65,15 @@ void CurrentloopBWTestApp_OnStart(UserApplication_Handle_t* pSuper)
 	pHandle->PulseLevel = false;
   pHandle->IdRef = ((int32_t)pHandle->IdRef_10BitRes * IQMAX) >> 10;
 	/* This will set the control mode to torque mode */
-	MCI_ExecTorqueRamp(pHandle->pMCI, 0, 0);
-	MCI_SetCurrentReferences(pHandle->pMCI, Iqdref);
+	MCI_ExecTorqueRamp(pSuper->pMCI, 0, 0);
+	MCI_SetCurrentReferences(pSuper->pMCI, Iqdref);
 
 }
 
 void CurrentloopBWTestApp_MediumFreqUpdate(UserApplication_Handle_t* pSuper)
 {
 	CurrentloopBWTestApp_Handle_t* pHandle = (CurrentloopBWTestApp_Handle_t*)pSuper;
-	if (MCI_GetSTMState(pHandle->pMCI) == RUN) {
+	if (MCI_GetSTMState(pSuper->pMCI) == RUN) {
 		if (HAL_GetTick() - pHandle->TimeStamp > pHandle->PulseWidth_ms) {
 			pHandle->TimeStamp = HAL_GetTick();
 			qd_t Iqdref        = {0, 0};
@@ -81,7 +81,7 @@ void CurrentloopBWTestApp_MediumFreqUpdate(UserApplication_Handle_t* pSuper)
 				Iqdref.d = pHandle->IdRef;
 			}
 			pHandle->PulseLevel = !pHandle->PulseLevel;
-			MCI_SetCurrentReferences(pHandle->pMCI, Iqdref);
+			MCI_SetCurrentReferences(pSuper->pMCI, Iqdref);
 		}
 	}
 }
