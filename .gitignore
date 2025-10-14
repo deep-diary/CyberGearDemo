@@ -1,6 +1,5 @@
 # STM32项目编译输出文件
 # Keil MDK-ARM 编译文件
-*.o
 *.d
 *.hex
 *.bin
@@ -17,8 +16,6 @@
 # 项目配置文件（个人设置）
 *.uvguix.*
 *.uvoptx
-*.uvprojx
-*.uvproj
 *.uvmpw
 *.uvguix
 *.uvopt

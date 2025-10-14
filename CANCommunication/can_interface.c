@@ -260,7 +260,9 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             } else {
                 if(UserAppID == USER_APP_NORMAL_POS_CTRL)
                 {
-                    PositionCtrolApp.Fs = 1000 / float_value ;  // Fs 为时间参数，单位是ms，而传递过来的参数是频率
+                    uint16_t freq = (uint16_t)(float_value * SPEED_UNIT); // 频率转换为单位0.1Hz
+                    PositionCtrolApp.RefSinStartFreq01Hz = freq ;  // Fs 为时间参数，单位是ms，而传递过来的参数是频率
+                    PositionCtrolApp.RefSinEndFreq01Hz = freq ;  // Fs 为时间参数，单位是ms，而传递过来的参数是频率
                 }
             }
             break;
@@ -271,7 +273,7 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             } else {
                 if(UserAppID == USER_APP_NORMAL_POS_CTRL)
                 {
-                    PositionCtrolApp.RefSinAmp = float_value * 9;  // 9 为减速比
+                    PositionCtrolApp.RefSinAmp = float_value * (65536.0f * 9 / (2 * PI));  // 9 为减速比
                 }
             }
             break;
