@@ -83,6 +83,10 @@ __STATIC_INLINE void UserApplication_OnExit(UserApplication_Handle_t* pHandle) {
 	if (NULL != pHandle->pFctOnExit /* && pHandle->Activated*/) {
 		pHandle->pFctOnExit(pHandle);
 	}
+
+	if (RUN == MCI_GetSTMState(pHandle->pMCI)) {
+		MCI_StopMotor(pHandle->pMCI);
+	}	
 }
 
 __STATIC_INLINE void UserApplication_PreLowFrequencyUpdate(UserApplication_Handle_t* pHandle) {
