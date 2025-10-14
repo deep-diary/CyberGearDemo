@@ -55,7 +55,7 @@ static void PositionCtrlApp_SetupSineGenerator(PositionCtrlApp_Handle_t* pHandle
 void PositionCtrlApp_OnReset(UserApplication_Handle_t* pSuper)
 {
   PositionCtrlApp_Handle_t* pHandle = (PositionCtrlApp_Handle_t*)pSuper;
-  STC_SetSpeedSensor(pHandle->pMCI->pSTC, &pHandle->pMCI->pPosCtrl->pENC->_Super);
+  STC_SetSpeedSensor(pHandle->pMCI->pSTC, pHandle->pMCI->pPosCtrl->pSPD);
   MCI_SetSpeedMode(pHandle->pMCI);
 }
 
@@ -69,6 +69,14 @@ void PositionCtrlApp_OnStart(UserApplication_Handle_t* pSuper)
   pHandle->flags.bits.PrevEnableSineRef = pHandle->flags.bits.EnableSineRef;
   /* This will set the control mode to speed mode */
   MCI_ExecSpeedRamp(pHandle->pMCI, 0, 0);
+
+  int32_t currentPosition = MCI_GetCurrentPosition(pHandle->pMCI);
+  pHandle->PosRef = currentPosition;
+  pHandle->PrevPosRef = currentPosition;
+  pHandle->SinRefOffset = currentPosition;
+  PositionProfileGenerator_PresetPosition(pHandle->pPosGen, currentPosition);
+  PosCtrl_Reset(pHandle->pMCI->pPosCtrl);
+
 }
 
 void PositionCtrlApp_OnBackground(UserApplication_Handle_t* pSuper)
@@ -77,13 +85,6 @@ void PositionCtrlApp_OnBackground(UserApplication_Handle_t* pSuper)
   switch (MCI_GetSTMState(pHandle->pMCI)) {
     case IDLE:
       if (pHandle->flags.bits.MotorOn) {
-        float_t currentPosition = MCI_GetCurrentPosition(pHandle->pMCI);
-        pHandle->PosRef = currentPosition;
-        pHandle->PrevPosRef = currentPosition;
-        pHandle->SinRefOffset = currentPosition;
-        MCI_ExecPositionCommand(pHandle->pMCI, currentPosition, 0.002f);
-        // qd_t Iqd = {0,0};
-        // MCI_SetCurrentReferences(pHandle->pMCI, Iqd);
         MCI_StartMotor(pHandle->pMCI);
       }
       break;
@@ -111,6 +112,7 @@ void PositionCtrlApp_OnBackground(UserApplication_Handle_t* pSuper)
 void PositionCtrlApp_OnLowFrequencyUpdate(UserApplication_Handle_t* pSuper)
 {
     PositionCtrlApp_Handle_t* pHandle = (PositionCtrlApp_Handle_t*)pSuper;
+    int32_t deltaPos = 0;
     if (RUN == MCI_GetSTMState(pHandle->pMCI)) {
         if (pHandle->flags.bits.EnableSineRef) {
           if (!pHandle->flags.bits.PrevEnableSineRef) {
@@ -118,30 +120,33 @@ void PositionCtrlApp_OnLowFrequencyUpdate(UserApplication_Handle_t* pSuper)
             PositionCtrlApp_SetupSineGenerator(pHandle);
             pHandle->flags.bits.PrevEnableSineRef = true;
             pHandle->SinRefOffset = MCI_GetCurrentPosition(pHandle->pMCI);
+            pHandle->PrevPosRef = pHandle->SinRefOffset;
           }
-          float_t PosRef = SineGenerator_Update(pHandle->pSin) * (1.0f/INT16_MAX )* pHandle->RefSinAmp;
+          int32_t PosRef = ((int64_t)SineGenerator_Update(pHandle->pSin) * pHandle->RefSinAmp) >> 15; // Q15
           PosRef += pHandle->SinRefOffset;
-          MCI_ExecPositionCommand(pHandle->pMCI, PosRef, 0.0f);
           pHandle->PosRef = PosRef;
+          deltaPos = PosRef - pHandle->PrevPosRef;
           pHandle->PrevPosRef = PosRef;
           if (pHandle->pSin->chirpMode && SineGenerator_IsCompleted(pHandle->pSin)) {
               MCI_StopMotor(pHandle->pMCI);
           }
         } else {
           if (pHandle->flags.bits.PrevEnableSineRef) {
+            int32_t currentPosition = MCI_GetCurrentPosition(pHandle->pMCI);
+            pHandle->PosRef = currentPosition;
+            pHandle->PrevPosRef = currentPosition;
             /* to clear the retained acc and speed */
-            MCI_ExecPositionCommand(pHandle->pMCI, pHandle->PosRef, 0.01f);
-            pHandle->PrevPosRef = pHandle->PosRef;    
+            PositionProfileGenerator_PresetPosition(pHandle->pPosGen, currentPosition);
+            PositionProfileGenerator_Replan(pHandle->pPosGen, pHandle->PosRef, PPG_ABSOLUTE);
           } else if (pHandle->PosRef != pHandle->PrevPosRef) {
-            // PosDuration = ABS(3*(posRef-prevPosRef)/(2*speedMax)) ;
-            MCI_ExecPositionCommand(pHandle->pMCI, pHandle->PosRef, pHandle->duration);
-            // MC_ProgramPositionCommandMotor1New(posRef,speedNext);
+            PositionProfileGenerator_Replan(pHandle->pPosGen, pHandle->PosRef, PPG_ABSOLUTE);
             pHandle->PrevPosRef = pHandle->PosRef;    
           }
           pHandle->flags.bits.PrevEnableSineRef = false;
+          deltaPos = PositionProfileGenerator_Update(pHandle->pPosGen);
         }
-
-        TC_PositionRegulation(pHandle->pMCI->pPosCtrl);
+        int16_t SpeedRef = PosCtrl_Update(pHandle->pMCI->pPosCtrl, deltaPos);
+        MCI_ExecSpeedRamp(pHandle->pMCI, SpeedRef, 0);
     }
 }
 

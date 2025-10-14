@@ -742,21 +742,21 @@ __weak float_t MC_GetAveragePowerMotor1_F(void)
   return (PQD_GetAvrgElMotorPowerW(pMPM[M1]));
 }
 
-/**
- * @brief returns the current control position state of Motor 1.
- *   */
-__weak PosCtrlStatus_t MC_GetControlPositionStatusMotor1(void)
-{
-  return (MCI_GetCtrlPositionState(pMCI[M1]));
-}
+///**
+// * @brief returns the current control position state of Motor 1.
+// *   */
+//__weak PosCtrlStatus_t MC_GetControlPositionStatusMotor1(void)
+//{
+//  return (MCI_GetCtrlPositionState(pMCI[M1]));
+//}
 
-/**
- * @brief returns the alignment state of Motor 1.
- *   */
-__weak AlignStatus_t MC_GetAlignmentStatusMotor1(void)
-{
-  return (MCI_GetAlignmentStatus(pMCI[M1]));
-}
+///**
+// * @brief returns the alignment state of Motor 1.
+// *   */
+//__weak AlignStatus_t MC_GetAlignmentStatusMotor1(void)
+//{
+//  return (MCI_GetAlignmentStatus(pMCI[M1]));
+//}
 
 /**
  * @brief returns the current position of Motor 1.
@@ -774,30 +774,30 @@ __weak float_t MC_GetTargetPosition1(void)
   return (MCI_GetTargetPosition(pMCI[M1]));
 }
 
-/**
- * @brief returns the total movement duration to reach the target position of Motor 1.
- *   */
-__weak float_t MC_GetMoveDuration1(void)
-{
-  return (MCI_GetMoveDuration(pMCI[M1]));
-}
+///**
+// * @brief returns the total movement duration to reach the target position of Motor 1.
+// *   */
+//__weak float_t MC_GetMoveDuration1(void)
+//{
+//  return (MCI_GetMoveDuration(pMCI[M1]));
+//}
 
-/**
- * @brief returns the current estimated angle of the Motor 1.
- *   */
-__weak float_t MC_GetCtrlPositionAngle1(void)
-{
-  return (MCI_GetCtrlPositionAngle(pMCI[M1]));
-}
+///**
+// * @brief returns the current estimated angle of the Motor 1.
+// *   */
+//__weak float_t MC_GetCtrlPositionAngle1(void)
+//{
+//  return (MCI_GetCtrlPositionAngle(pMCI[M1]));
+//}
 
-/**
- * @brief sets the current estimated anglular position of the Motor 1.
- * @param  fCurrentPosition current mechanical angular position (in radian).
- *   */
-__weak void MC_SetCtrlPositionAngle1(float_t fCurrentPosition)
-{
-  MCI_SetCtrlPositionAngle(pMCI[M1], fCurrentPosition);
-}
+///**
+// * @brief sets the current estimated anglular position of the Motor 1.
+// * @param  fCurrentPosition current mechanical angular position (in radian).
+// *   */
+//__weak void MC_SetCtrlPositionAngle1(float_t fCurrentPosition)
+//{
+//  MCI_SetCtrlPositionAngle(pMCI[M1], fCurrentPosition);
+//}
 
 /**
  * @brief Not implemented MC_Profiler function.

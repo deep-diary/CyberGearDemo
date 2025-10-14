@@ -182,11 +182,11 @@ MCI_State_t  MC_GetSTMStateMotor1(void);
 /* returns the current power of Motor 1 in float_t format */
 float_t MC_GetAveragePowerMotor1_F(void);
 
-/* returns the current control position state of Motor 1 */
-PosCtrlStatus_t  MC_GetControlPositionStatusMotor1(void);
+///* returns the current control position state of Motor 1 */
+//PosCtrlStatus_t  MC_GetControlPositionStatusMotor1(void);
 
-/* returns the alignment state of Motor 1 */
-AlignStatus_t  MC_GetAlignmentStatusMotor1(void);
+///* returns the alignment state of Motor 1 */
+//AlignStatus_t  MC_GetAlignmentStatusMotor1(void);
 
 /* returns the current position of Motor 1. */
 float_t MC_GetCurrentPosition1(void);

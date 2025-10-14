@@ -28,6 +28,7 @@ extern "C" {
 #include "mc_interface.h"
 #include "user_application.h"
 #include "SineGenerator.h"
+#include "PositionProfileGenerator.h"
 /* Exported constants --------------------------------------------------------*/
 
 /* Exported Variables --------------------------------------------------------*/
@@ -37,14 +38,13 @@ typedef struct {
   UserApplication_Handle_t _Super;
   MCI_Handle_t*            pMCI;
   SineGenerator_Handle_t*  pSin;
+  PositionProfileGenerator_Handle_t* pPosGen;
 
-  float_t PosRef;
-  float_t PrevPosRef;
-  float_t duration;
-
-  float_t SinRefOffset;
+  int32_t PosRef;
+  int32_t PrevPosRef;
+  int32_t SinRefOffset;
+  int32_t RefSinAmp;
   
-  float_t RefSinAmp;
   uint16_t Fs;
   uint16_t RefSinStartFreq01Hz;
   uint16_t RefSinEndFreq01Hz;

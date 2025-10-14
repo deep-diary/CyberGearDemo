@@ -767,17 +767,17 @@ uint8_t RI_GetRegisterGlobal(uint16_t regID,uint8_t typeID,uint8_t * data,uint16
               break;
             }
 
-            case MC_REG_POSITION_CTRL_STATE:
-            {
-              *data = (uint8_t) TC_GetControlPositionStatus(&PosCtrlM1);
-              break;
-            }
+//            case MC_REG_POSITION_CTRL_STATE:
+//            {
+//              *data = (uint8_t) TC_GetControlPositionStatus(&PosCtrlM1);
+//              break;
+//            }
 
-            case MC_REG_POSITION_ALIGN_STATE:
-            {
-              *data = (uint8_t) TC_GetAlignmentStatus(&PosCtrlM1);
-              break;
-            }
+//            case MC_REG_POSITION_ALIGN_STATE:
+//            {
+//              *data = (uint8_t) TC_GetAlignmentStatus(&PosCtrlM1);
+//              break;
+//            }
 
             default:
             {
@@ -1252,18 +1252,18 @@ uint8_t RI_GetRegisterGlobal(uint16_t regID,uint8_t typeID,uint8_t * data,uint16
             break;
           }
 
-          case MC_REG_POSITION_RAMP:
-          {
-            float Position;
-            float Duration;
+//          case MC_REG_POSITION_RAMP:
+//          {
+//            float Position;
+//            float Duration;
 
-            *rawSize = 8;
-            Position = TC_GetMoveDuration(&PosCtrlM1);   /* Does this duration make sense ? */
-            Duration = TC_GetTargetPosition(&PosCtrlM1);
-            (void)memcpy(rawData, &Position, 4);
-            (void)memcpy(&rawData[4], &Duration, 4);
-            break;
-          }
+//            *rawSize = 8;
+//            Position = TC_GetMoveDuration(&PosCtrlM1);   /* Does this duration make sense ? */
+//            Duration = TC_GetTargetPosition(&PosCtrlM1);
+//            (void)memcpy(rawData, &Position, 4);
+//            (void)memcpy(&rawData[4], &Duration, 4);
+//            break;
+//          }
 
           case MC_REG_ASYNC_UARTA:
           case MC_REG_ASYNC_UARTB:

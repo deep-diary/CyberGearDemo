@@ -119,11 +119,12 @@ PID_Handle_t PID_PosParamsM1 =
   .hKdDivisorPOW2      = (uint16_t)PID_POSITION_KDDIV_LOG,
 };
 
-PosCtrl_Handle_t PosCtrlM1 =
-{
-  .SamplingTime  = 1.0f/POSITION_LOOP_FREQUENCY_HZ,
-  .SysTickPeriod = 1.0f/SYS_TICK_FREQUENCY,
-  .AlignmentCfg  = TC_ABSOLUTE_ALIGNMENT_NOT_SUPPORTED,
+PosCtrl_Handle_t PosCtrlM1 = {
+    .pSPD                  = &ENCODER_M1._Super,
+    .mode                  = POSCTR_PROFILE_MODE,
+    .maxSpeedDpp           = (50UL << 16) / POSITION_LOOP_FREQUENCY_HZ,
+    .KpGain                = 10,
+    .EncoderResolutionBits = 14,
 };
 
 /**
@@ -262,6 +263,11 @@ MCI_Handle_t Mci[NBR_OF_MOTORS] =
 };
 
 /* USER CODE BEGIN Additional configuration */
+PositionProfileGenerator_Handle_t PositionProfileGeneratorM1 = {
+    .setVelocity    = 65536 / 1000,  // 1 round per second
+    .actualVelocity = 65536 / 1000,
+    .filterConst    = PPG_FILTER_BUFFER_SIZE,
+};
 
 /* USER CODE END Additional configuration */
 

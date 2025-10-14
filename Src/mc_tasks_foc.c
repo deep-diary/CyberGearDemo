@@ -115,7 +115,7 @@ __weak void FOC_Init(void)
     /*   Position Control component initialization        */
     /******************************************************/
     PID_HandleInit(&PID_PosParamsM1);
-    TC_Init(&PosCtrlM1, &PID_PosParamsM1, &SpeednTorqCtrlM1, &ENCODER_M1);
+//    TC_Init(&PosCtrlM1, &PID_PosParamsM1, &SpeednTorqCtrlM1, &ENCODER_M1);
 
     /******************************************************/
     /*   Speed & torque component initialization          */
@@ -310,7 +310,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
 
                 STC_SetControlMode(pSTC[M1], MCM_SPEED_MODE);
                 STC_SetSpeedSensor(pSTC[M1], &ENCODER_M1._Super);
-                TC_EncAlignmentCommand(pPosCtrl[M1]);
+                // TC_EncAlignmentCommand(pPosCtrl[M1]);
                 FOC_InitAdditionalMethods(M1);
                 FOC_CalcCurrRef(M1);
                 STC_ForceSpeedReferenceToCurrentSpeed(pSTC[M1]); /* Init the reference speed to current speed */
@@ -443,7 +443,7 @@ __weak void TSK_MediumFrequencyTaskM1(void)
             {
               ENC_Clear(&ENCODER_M1);
               R3_2_SwitchOnPWM(pwmcHandle[M1]);
-              TC_EncAlignmentCommand(pPosCtrl[M1]);
+              // TC_EncAlignmentCommand(pPosCtrl[M1]);
               FOC_InitAdditionalMethods(M1);
               STC_ForceSpeedReferenceToCurrentSpeed(pSTC[M1]); /* Init the reference speed to current speed */
               MCI_ExecBufferedCommands(&Mci[M1]); /* Exec the speed ramp after changing of the speed sensor */

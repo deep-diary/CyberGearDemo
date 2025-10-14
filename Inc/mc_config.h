@@ -27,7 +27,6 @@
 #include "revup_ctrl.h"
 #include "mc_config_common.h"
 #include "pwm_curr_fdbk.h"
-#include "trajectory_ctrl.h"
 #include "pqd_motor_power_measurement.h"
 #include "r3_2_g4xx_pwm_curr_fdbk.h"
 #include "open_loop.h"
@@ -35,7 +34,8 @@
 #include "circle_limitation.h"
 
 /* USER CODE BEGIN Additional include */
-
+#include "PositionControl.h"
+#include "PositionProfileGenerator.h"
 /* USER CODE END Additional include */
 
 extern PID_Handle_t PIDIqHandle_M1;
@@ -62,7 +62,7 @@ extern SpeednTorqCtrl_Handle_t SpeednTorqCtrlM1;
 extern PID_Handle_t PIDSpeedHandle_M1;
 
 /* USER CODE BEGIN Additional extern */
-
+extern PositionProfileGenerator_Handle_t PositionProfileGeneratorM1;
 /* USER CODE END Additional extern */
 
 #endif /* MC_CONFIG_H */

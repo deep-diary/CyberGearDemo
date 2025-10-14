@@ -33,8 +33,8 @@ extern "C" {
 #include "pwm_curr_fdbk.h"
 #include "speed_torq_ctrl.h"
 
-#include "trajectory_ctrl.h"
 #include "virtual_speed_sensor.h"
+#include "PositionControl.h"
 /** @addtogroup MCSDK
   * @{
   */
@@ -157,12 +157,12 @@ typedef struct
 void MCI_Init(MCI_Handle_t *pHandle, SpeednTorqCtrl_Handle_t *pSTC, pFOCVars_t pFOCVars, PosCtrl_Handle_t *pPosCtrl,
               PWMC_Handle_t *pPWMHandle);
 void MCI_ExecPositionCommand(MCI_Handle_t *pHandle, float_t FinalPosition, float_t Duration);
-PosCtrlStatus_t MCI_GetCtrlPositionState(MCI_Handle_t *pHandle);
-AlignStatus_t  MCI_GetAlignmentStatus(MCI_Handle_t *pHandle);
-float_t MCI_GetCurrentPosition(MCI_Handle_t *pHandle);
-float_t MCI_GetTargetPosition(MCI_Handle_t *pHandle);
-float_t MCI_GetCtrlPositionAngle(MCI_Handle_t *pHandle);
-float_t MCI_GetMoveDuration(MCI_Handle_t *pHandle);
+//PosCtrlStatus_t MCI_GetCtrlPositionState(MCI_Handle_t *pHandle);
+//AlignStatus_t  MCI_GetAlignmentStatus(MCI_Handle_t *pHandle);
+int32_t MCI_GetCurrentPosition(MCI_Handle_t *pHandle);
+int32_t MCI_GetTargetPosition(MCI_Handle_t *pHandle);
+//float_t MCI_GetCtrlPositionAngle(MCI_Handle_t *pHandle);
+//float_t MCI_GetMoveDuration(MCI_Handle_t *pHandle);
 void MCI_SetCtrlPositionAngle(MCI_Handle_t *pHandle, float_t fCurrentPosition);
 void MCI_ExecBufferedCommands(MCI_Handle_t *pHandle );
 void MCI_ExecSpeedRamp(MCI_Handle_t *pHandle,  int16_t hFinalSpeed, uint16_t hDurationms);

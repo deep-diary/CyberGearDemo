@@ -104,15 +104,14 @@ PositionCtrlApp_Handle_t PositionCtrolApp = {
           .OneShootTaskFinished     = false,
       },
   .pMCI       = &Mci[M1],
-  .PosRef     = 0.0f,
-  .PrevPosRef = 0.0f,
-  .duration   = 1.0f,
-
+  .PosRef     = 0,
+  .PrevPosRef = 0,
+  .pPosGen   = &PositionProfileGeneratorM1,
   .pSin                   = &sineGenerator,
   .Fs                     = POSITION_LOOP_FREQUENCY_HZ,
   .RefSinStartFreq01Hz = 2,
   .RefSinEndFreq01Hz   = 2,
-  .RefSinAmp           = 4 * PI,
+  .RefSinAmp           = 65536L * 5,  /* 5 rounds */
   .SweepDuration_ms    = 5000,
   .flags      = {0}
 

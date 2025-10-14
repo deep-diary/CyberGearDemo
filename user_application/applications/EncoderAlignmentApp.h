@@ -29,6 +29,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "mc_interface.h"
 #include "user_application.h"
+#include "encoder_speed_pos_fdbk.h"
 /* Exported constants --------------------------------------------------------*/
 typedef enum {
     EAA_IDLE,
