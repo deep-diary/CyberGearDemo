@@ -4,6 +4,9 @@
 #ifndef PI
 #define PI 3.14159265359f
 #endif
+#ifndef TWO_PI
+#define TWO_PI 6.28318530718f
+#endif
 
 #define SQRT3 1.73205080757f
 

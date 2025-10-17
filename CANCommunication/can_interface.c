@@ -365,21 +365,18 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
         // ======== 其他浮点参数（无特定范围限制） ========
         case PARAM_LOC_REF://位置模式参考位置
 
-            Parameter_data  = *(float *)(data_bytes+4);
-            PositionCtrolApp.PosRef = Parameter_data*9;
+            Parameter_data  = *(float *)(data_bytes+4);  // 机械弧度
+            // 位置限制在+— 12.56rad 内
+            limit(&Parameter_data, -P_MAX, P_MAX);
+            // PositionCtrolApp.PosRef = Parameter_data*9;  // 高速端弧度值
+            PositionCtrolApp.PosRef = Parameter_data * POS_FACTOR;  // 转换成内部量，2pi = 63336
             break;
             
         case PARAM_LIMIT_SPD: // 位置模式速度限制
-        //     Parameter_data  = *(float *)(data_bytes+4);
-        //     speedMax = Parameter_data*9;
-        // if (speedMax > 270.0)
-        //    {
-        //     speedMax = 270.0;
-        //    }
-        //    else if (speedMax < -270.0) 
-        //    {
-        //     speedMax = -270.0;
-        //    }
+            Parameter_data  = *(float *)(data_bytes+4);   // 低速端速度 -30rad/s ~ 30rad/s
+            // float speedMax = Parameter_data*9;  // 高速端速度 -270rad/s ~ 270rad/s
+            limit(&Parameter_data, -V_MAX, V_MAX);
+            PositionCtrolApp.pPosGen->setVelocity = Parameter_data * SPD_FACTOR;   // 转换成内部量，2pi rad / s = 65536/1000，9为减速比
             break;
             
         case PARAM_LIMIT_CUR: // 电流限制

@@ -39,6 +39,11 @@ extern "C" {
  #define KD_MAX 5.0f
  #define TORQUE_MIN -12.0f
  #define TORQUE_MAX  12.0f
+ 
+ #define POS_FACTOR (9 * (65536.0f / (2 * PI)))
+ #define SPD_FACTOR (9 * (65536.0f / 1000.0f) / (2 * PI))
+ #define CUR_FACTOR (23.0f)
+
 /* Exported type -------------------------------------------------------------*/
 
 #define  CAN_ID_MASTER          (0X00)   //控制主机地址 - SPIE
