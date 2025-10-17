@@ -39,10 +39,11 @@ extern "C" {
  #define KD_MAX 5.0f
  #define TORQUE_MIN -12.0f
  #define TORQUE_MAX  12.0f
- 
+
  #define POS_FACTOR (9 * (65536.0f / (2 * PI)))
  #define SPD_FACTOR (9 * (65536.0f / 1000.0f) / (2 * PI))
  #define CUR_FACTOR (23.0f)
+ #define JOG_FACTOR (9 * 30.0f / 32768.0f)
 
 /* Exported type -------------------------------------------------------------*/
 

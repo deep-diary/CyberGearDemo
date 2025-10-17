@@ -285,32 +285,36 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                 motor_params.run_mode = (MotorRunMode)uint8_value;
                 RequestedUserAppID = (USER_APP_ID)uint8_value;
 
-                if(motor_params.run_mode == MODE_JOG)  // 临时转换
-                {
-                    RequestedUserAppID = USER_APP_JOG;
-                }
+                switch (motor_params.run_mode) {
+                    case MODE_JOG:  // 临时转换
+                        RequestedUserAppID = USER_APP_JOG;
+                        jog_cmd = data_bytes[5];
 
-                if(RequestedUserAppID == USER_APP_JOG)
-                {
-                    jog_cmd = data_bytes[5];
+                        sig_temp_u16 = data_bytes[6] << 8 | data_bytes[7];
 
-                    sig_temp_u16 = data_bytes[6] << 8 | data_bytes[7];
+                        sig_temp_i32 = (int32_t)(sig_temp_u16) - 0x7fff; //0x7fff 为速度0 的值
 
-                    sig_temp_i32 = (int32_t)(sig_temp_u16) - 0x7fff; //0x7fff 为速度0 的值
+                        sig_temp_float = sig_temp_i32 * JOG_FACTOR;
 
-                    sig_temp_float = (sig_temp_i32 * 30.0f) /32768.0f;// 30 表示最大速度，15 为位移，相当于除32768， 也就是30rad/s 速度对应的最大有符号16进制值
-
-                    jog_spd = sig_temp_float;
-                    if(jog_cmd == 1)
-                    {
-                        JogApp.flags.bits.MotorOn = true;
-                        JogApp.JogSpeed = jog_spd;
-                    }
-                    else
-                    {
-                        JogApp.flags.bits.MotorOn = false;
-                        JogApp.JogSpeed = 0;
-                    }
+                        jog_spd = sig_temp_float;
+                        if(jog_cmd == 1)
+                        {
+                            JogApp.flags.bits.MotorOn = true;
+                            JogApp.JogSpeed = jog_spd;
+                        }
+                        else
+                        {
+                            JogApp.flags.bits.MotorOn = false;
+                            JogApp.JogSpeed = 0;
+                        }
+                        break;
+                    case MODE_SPEED:
+                        RequestedUserAppID = USER_APP_SPEEDLOOP_BW_TEST;
+                        break;
+                    default:
+                        // RequestedUserAppID is already set to (USER_APP_ID)uint8_value
+                        // No further action needed for other modes if they map directly.
+                        break;
                 }
             }
             break;
