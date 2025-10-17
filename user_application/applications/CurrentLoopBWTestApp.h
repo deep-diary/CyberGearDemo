@@ -33,7 +33,6 @@ extern "C" {
 /* Exported type -------------------------------------------------------------*/
 typedef struct {
   UserApplication_Handle_t _Super;
-  MCI_Handle_t*      pMCI;
 
   uint32_t TimeStamp;
   uint16_t PulseWidth_ms;

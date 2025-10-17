@@ -44,7 +44,6 @@ typedef enum {
 /* Exported types ------------------------------------------------------------*/
 typedef struct {
   UserApplication_Handle_t _Super;
-  MCI_Handle_t*            pMCI;
   ENCODER_Handle_t*        pEncoder;
 
   uint32_t TimeStamp;

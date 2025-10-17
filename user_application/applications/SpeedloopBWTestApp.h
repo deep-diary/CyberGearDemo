@@ -35,7 +35,6 @@ extern "C" {
 /* Exported type -------------------------------------------------------------*/
 typedef struct {
   UserApplication_Handle_t       _Super;
-  MCI_Handle_t*           pMCI;
   SineGenerator_Handle_t* pSin;
 
   uint16_t Fs;

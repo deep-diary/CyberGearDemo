@@ -37,7 +37,6 @@ extern "C" {
 typedef struct 
 {
   UserApplication_Handle_t _Super;
-  MCI_Handle_t*            pMCI;
 
   int16_t Idref;
   int16_t JogSpeed;

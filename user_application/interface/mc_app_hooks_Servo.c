@@ -68,6 +68,7 @@
 SineGenerator_Handle_t sineGenerator;
 
 UserApplication_Handle_t DummyUserApp = {
+    .pMCI                     = NULL,
     .pFctInit                 = NULL,
     .pFctReset                = NULL,
     .pFctOnStart              = NULL,
@@ -88,6 +89,7 @@ UserApplication_Handle_t DummyUserApp = {
 PositionCtrlApp_Handle_t PositionCtrolApp = {
   ._Super =
       {
+          .pMCI       = &Mci[M1],
           .pFctInit                 = NULL,
           .pFctReset                = PositionCtrlApp_OnReset,
           .pFctOnStart              = PositionCtrlApp_OnStart,
@@ -103,7 +105,6 @@ PositionCtrlApp_Handle_t PositionCtrolApp = {
           .OneShootTask             = false,
           .OneShootTaskFinished     = false,
       },
-  .pMCI       = &Mci[M1],
   .PosRef     = 0,
   .PrevPosRef = 0,
   .pPosGen   = &PositionProfileGeneratorM1,
@@ -120,6 +121,7 @@ PositionCtrlApp_Handle_t PositionCtrolApp = {
 EncoderAlignmentApp_Handle_t EncoderAlignmentApp = {
     ._Super =
         {
+            .pMCI              = &Mci[M1],
             .pFctInit                 = EncoderAlignmentApp_Init,
             .pFctReset                = EncoderAlignmentApp_Reset,
             .pFctOnStart              = NULL,
@@ -136,7 +138,6 @@ EncoderAlignmentApp_Handle_t EncoderAlignmentApp = {
             .OneShootTaskFinished     = false,
         },
 
-    .pMCI              = &Mci[M1],
     .TimeStamp         = 0,
     .pEncoder          = &ENCODER_M1,
     .AlignmentDuration = 2000,
@@ -149,6 +150,7 @@ EncoderAlignmentApp_Handle_t EncoderAlignmentApp = {
 JogApp_Handle_t JogApp = {
     ._Super =
         {
+            .pMCI                     = &Mci[M1],
             .pFctInit                 = NULL,
             .pFctReset                = JogApp_OnReset,
             .pFctOnStart              = NULL,
@@ -164,8 +166,6 @@ JogApp_Handle_t JogApp = {
             .OneShootTask             = false,
             .OneShootTaskFinished     = false,
         },
-
-    .pMCI              = &Mci[M1],
     .flags             = {0},
     .Acc               = 200,   /* 2s/Hz*/
     .Idref             = IQMAX * 25 / 100,
@@ -176,6 +176,7 @@ JogApp_Handle_t JogApp = {
 CurrentloopBWTestApp_Handle_t CurrentLoopBWTest = {
     ._Super =
         {
+             .pMCI           = &Mci[M1],
             .pFctInit                 = NULL,
             .pFctReset                = NULL,
             .pFctOnStart              = CurrentloopBWTestApp_OnStart,
@@ -191,7 +192,6 @@ CurrentloopBWTestApp_Handle_t CurrentLoopBWTest = {
             .OneShootTask             = false,
             .OneShootTaskFinished     = false,
         },
-    .pMCI           = &Mci[M1],
     .IdRef_10BitRes = 300,
     .IdRef          = IQMAX * 30 / 100,
     .PulseWidth_ms  = 100,
@@ -201,6 +201,7 @@ CurrentloopBWTestApp_Handle_t CurrentLoopBWTest = {
 SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {
     ._Super =
         {
+            .pMCI                   = &Mci[M1],
             .pFctInit               = NULL,
             .pFctReset              = NULL,
             .pFctOnStart            = SpeedloopBWTestApp_OnStart,
@@ -216,7 +217,6 @@ SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {
             .OneShootTask           = false,
             .OneShootTaskFinished   = false,
         },
-    .pMCI                   = &Mci[M1],
     .pSin                   = &sineGenerator,
     .Fs                     = MEDIUM_FREQUENCY_TASK_RATE,
     .SpdRefSinStartFreq01Hz = 2,
