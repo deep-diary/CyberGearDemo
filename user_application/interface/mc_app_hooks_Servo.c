@@ -32,6 +32,7 @@
 #define ENCODER_TYPE            MAGNET_ENCODER
 
 #include "mc_app_hooks_servo.h"
+#include "outAngleCalculate.h"
 #if DATALOGGER_TYPE == DATALOGGER_JSCOPE
 #include "JSInterface.h"
 #endif
@@ -66,6 +67,20 @@
 
 
 SineGenerator_Handle_t sineGenerator;
+
+/* 角度计算模块全局变量 */
+ AngleCalcHandle_t s_angleCalcHandle;
+static uint8_t s_angleCalcInitialized = 0;
+
+/* 默认角度计算配置 */
+static AngleCalcConfig_t s_defaultAngleConfig = {
+    .Va_max = 39520,       // 假设12位ADC，最大值4095
+    .Va_min = 24320,       // ADC最小值0
+    .Vb_max = 41488,       // 假设12位ADC，最大值4095
+    .Vb_min = 23664,       // ADC最小值0
+    .bias_angle = 0,
+    .sector_bounds = {0, 3640, 10922, 18203, 25485, 32766, 40048, 47329, 54611, 61892, 65535}
+};
 
 UserApplication_Handle_t DummyUserApp = {
     .pMCI                     = NULL,
@@ -333,13 +348,18 @@ void MC_APP_BootHook(void)
 
   ParamManager_Init();
 
+  /* 初始化角度计算模块 */
+  if (OutAngleCalc_Init(&s_angleCalcHandle, &s_defaultAngleConfig) == 0) {
+    s_angleCalcInitialized = 1;
+  }
+
   /* USER CODE END BootHook */
 }
 
 /**
- * @brief Hook function called right after the Medium Frequency Task for Motor 1.
- *
- */
+  * @brief Hook function called right after the Medium Frequency Task for Motor 1.
+  *
+  */
 void MC_APP_PostHighFrequencyHook_M1(void)
 {
   /*
@@ -350,6 +370,23 @@ void MC_APP_PostHighFrequencyHook_M1(void)
 
   /* USER SECTION BEGIN PostMediumFrequencyHookM1 */
   UserApplication_PostHighFrequencyUpdate(pCurrentTask);
+
+  /* 角度计算功能 */
+  if (s_angleCalcInitialized) {
+    /* 获取霍尔传感器电压值 */
+    uint16_t LineHALLA = RCM_GetRegularConv(&LineHALL_A);
+    uint16_t LineHALLB = RCM_GetRegularConv(&LineHALL_B);
+    
+    /* 获取机械角度 */
+    int16_t hMecAngle = MC_GetCurrentPosition1();
+    
+    /* 计算输出角度 */
+    if (OutAngleCalc_Compute(&s_angleCalcHandle, LineHALLA, LineHALLB, hMecAngle) == 0) {
+      /* 角度计算成功，可以在这里使用计算结果 */
+      /* 例如：可以将结果用于其他控制算法或数据记录 */
+    }
+  }
+
   /* USER SECTION END PostMediumFrequencyHookM1 */
 }
 
