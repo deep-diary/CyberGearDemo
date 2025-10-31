@@ -1200,6 +1200,11 @@
               <FileType>1</FileType>
               <FilePath>..\user_application\applications\SpeedloopBWTestApp.c</FilePath>
             </File>
+            <File>
+              <FileName>BasicApp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\user_application\applications\BasicApp.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

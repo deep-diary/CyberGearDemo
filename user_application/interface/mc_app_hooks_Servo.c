@@ -64,6 +64,7 @@
 #include "can_interface.h"
 #include "param_manager.h"
 #include "JogApp.h"
+#include "BasicApp.h"
 
 
 SineGenerator_Handle_t sineGenerator;
@@ -82,29 +83,38 @@ static AngleCalcConfig_t s_defaultAngleConfig = {
     .sector_bounds = {0, 3640, 10922, 18203, 25485, 32766, 40048, 47329, 54611, 61892, 65535}
 };
 
-UserApplication_Handle_t DummyUserApp = {
-    .pMCI                     = NULL,
-    .pFctInit                 = NULL,
-    .pFctReset                = NULL,
-    .pFctOnStart              = NULL,
-    .pFctOnExit               = NULL,
-    .pFctPreLowFreqUpdate     = NULL,
-    .pFctPostLowFreqUpdate    = NULL,
-    .pFctPreMediumFreqUpdate  = NULL,
-    .pFctPostMediumFreqUpdate = NULL,
-    .pFctPreHighFreqUpdate    = NULL,
-    .pFctPostHighFreqUpdate   = NULL,
-    .pFctBackgroundUpdate     = NULL,
-    .Activated                = false,
-    .OneShootTask             = false,
-    .OneShootTaskFinished     = false,
+BasicApp_Handle_t BasicApp = {
+  ._Super =
+      {
+      .pMCI                     = &Mci[M1],
+      .pFctInit                 = NULL,
+      .pFctReset                = BasicApp_OnReset,
+      .pFctOnStart              = NULL,
+      .pFctOnExit               = BasicApp_OnExit,
+      .pFctPreLowFreqUpdate     = NULL,
+      .pFctPostLowFreqUpdate    = NULL,
+      .pFctPreMediumFreqUpdate  = NULL,
+      .pFctPostMediumFreqUpdate = NULL,
+      .pFctPreHighFreqUpdate    = NULL,
+      .pFctPostHighFreqUpdate   = NULL,
+      .pFctBackgroundUpdate     = BasicApp_OnBackground,
+      .Activated                = false,
+      .OneShootTask             = false,
+      .OneShootTaskFinished     = false,
+      },
+  .Iref        = 0,
+  .SpeedRef    = 0,
+  .PrevSpeedRef= 0,
+  .Durationms  = 1000,
+  .Flags       = {0}
+        
 };
 
 
 PositionCtrlApp_Handle_t PositionCtrolApp = {
   ._Super =
       {
-          .pMCI       = &Mci[M1],
+          .pMCI                     = &Mci[M1],
           .pFctInit                 = NULL,
           .pFctReset                = PositionCtrlApp_OnReset,
           .pFctOnStart              = PositionCtrlApp_OnStart,
@@ -136,7 +146,7 @@ PositionCtrlApp_Handle_t PositionCtrolApp = {
 EncoderAlignmentApp_Handle_t EncoderAlignmentApp = {
     ._Super =
         {
-            .pMCI              = &Mci[M1],
+            .pMCI                     = &Mci[M1],
             .pFctInit                 = EncoderAlignmentApp_Init,
             .pFctReset                = EncoderAlignmentApp_Reset,
             .pFctOnStart              = NULL,
@@ -191,7 +201,7 @@ JogApp_Handle_t JogApp = {
 CurrentloopBWTestApp_Handle_t CurrentLoopBWTest = {
     ._Super =
         {
-             .pMCI           = &Mci[M1],
+            .pMCI                     = &Mci[M1],
             .pFctInit                 = NULL,
             .pFctReset                = NULL,
             .pFctOnStart              = CurrentloopBWTestApp_OnStart,
@@ -216,7 +226,7 @@ CurrentloopBWTestApp_Handle_t CurrentLoopBWTest = {
 SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {
     ._Super =
         {
-            .pMCI                   = &Mci[M1],
+            .pMCI                     = &Mci[M1],
             .pFctInit               = NULL,
             .pFctReset              = NULL,
             .pFctOnStart            = SpeedloopBWTestApp_OnStart,
@@ -274,7 +284,7 @@ MechParamIDApp_Handle_t MechParamIDApp = {
 
 
 UserApplication_Handle_t* const USER_TASKS_ARRAY[USER_APP_COUNT] = {
-    &DummyUserApp,
+    &BasicApp._Super,
     &PositionCtrolApp._Super,
     &EncoderAlignmentApp._Super,
     &CurrentLoopBWTest._Super,
@@ -285,7 +295,7 @@ UserApplication_Handle_t* const USER_TASKS_ARRAY[USER_APP_COUNT] = {
     &JogApp._Super,
 };
 
-UserApplication_Handle_t* pCurrentTask = &DummyUserApp;
+UserApplication_Handle_t* pCurrentTask = &BasicApp._Super;
 
 USER_APP_ID UserAppID          = USER_APP_NONE;
 USER_APP_ID RequestedUserAppID = USER_APP_NORMAL_POS_CTRL;
