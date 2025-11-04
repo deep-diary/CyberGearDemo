@@ -66,6 +66,7 @@
 /*** Quadrature encoder ***/
 #define M1_ENCODER_PPR          4096  /*!< Number of pulses per
                                             revolution */
-
+#define ENCODER_RAW_BITS         14    /*!< Number of bits of the
+                                            encoder */   
 #endif /* PMSM_MOTOR_PARAMETERS_H */
 /******************* (C) COPYRIGHT 2025 STMicroelectronics *****END OF FILE****/

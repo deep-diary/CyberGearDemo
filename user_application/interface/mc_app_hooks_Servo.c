@@ -151,7 +151,7 @@ EncoderAlignmentApp_Handle_t EncoderAlignmentApp = {
             .pFctReset                = EncoderAlignmentApp_Reset,
             .pFctOnStart              = NULL,
             .pFctOnExit               = NULL,
-            .pFctPreLowFreqUpdate     = NULL,
+            .pFctPreLowFreqUpdate     = EncoderAlignmentApp_OnLowFrequencyUpdate,
             .pFctPostLowFreqUpdate    = NULL,
             .pFctPreMediumFreqUpdate  = NULL,
             .pFctPostMediumFreqUpdate = NULL,
@@ -163,12 +163,14 @@ EncoderAlignmentApp_Handle_t EncoderAlignmentApp = {
             .OneShootTaskFinished     = false,
         },
 
-    .TimeStamp         = 0,
     .pEncoder          = &ENCODER_M1,
+    .pPosGen           = &PositionProfileGeneratorM1,
+
+    .TimeStamp         = 0,
     .AlignmentDuration = 2000,
     .SpinningDuration  = 10000,
     .AlignedMecAngle   = 0,
-    .Idref             = IQMAX * 30 / 100,
+    .Idref             = IQMAX * 80 / 100,
 
 };
 
@@ -191,6 +193,7 @@ JogApp_Handle_t JogApp = {
             .OneShootTask             = false,
             .OneShootTaskFinished     = false,
         },
+
     .flags             = {0},
     .Acc               = 200,   /* 2s/Hz*/
     .Idref             = IQMAX * 25 / 100,

@@ -48,6 +48,9 @@ extern "C" {
 #define ENC_DMA_PRIORITY DMA_Priority_High
 #define ENC_SPEED_ARRAY_SIZE  ((uint8_t)16)    /* 2^4 */
 
+#define ENC_LUT_SIZE_SHIFT     10
+#define ENC_LUT_SIZE           (1 << ENC_LUT_SIZE_SHIFT)
+
 /**
   * @brief  ENCODER component parameters definition
   */
@@ -83,6 +86,11 @@ typedef struct
   volatile uint8_t DeltaCapturesIndex;               /*!< Buffer index */
   // bool TimerOverflowError;                           /*!< true if the number of overflow  occurred is greater than
                                                           // 'define' ENC_MAX_OVERFLOW_NB*/
+  uint16_t EncRaw2LUTShiftBits;
+  int16_t hAngleError[ENC_LUT_SIZE];
+
+  volatile bool CalibrationEnable;
+
 } ENCODER_Handle_t;
 
 

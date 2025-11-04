@@ -82,7 +82,7 @@ __weak void ENC_Init(ENCODER_Handle_t *pHandle)
     //     LL_TIM_SetCounter(TIMx, 0);
 
     //     /*Calculations of convenience*/
-    pHandle->U32MAXdivPulseNumber = UINT32_MAX / ((uint32_t) pHandle->PulseNumber);
+    pHandle->U32MAXdivPulseNumber  = UINT32_MAX / ((uint32_t) pHandle->PulseNumber);
     pHandle->SpeedSamplingFreqUnit = ((uint32_t)pHandle->SpeedSamplingFreqHz * (uint32_t)SPEED_UNIT);
 
     pHandle->zeroAngleOffset = 0;
@@ -158,9 +158,10 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
   {
 #endif
     int16_t mecAngle; /* s16degree format */
-    uint16_t utemp1;
+    uint16_t RawMecAngle;
     uint32_t uwtemp1;
-    int32_t wtemp1;
+    int32_t wMecAngle;
+    int32_t wElAngle;
     uint8_t  bBufferIndex;
     uint8_t  bBufferSize = pHandle->SpeedBufferSize;
     /* PR 52926 We need to keep only the 16 LSB, bit 31 could be at 1
@@ -168,10 +169,10 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
     // uwtemp1 = (LL_TIM_GetCounter(pHandle->TIMx) & 0x7fffffffU) * (pHandle->U32MAXdivPulseNumber);
     LL_SPI_Enable(pHandle->pSPI);
     // clear RXNE flag
-    utemp1 = LL_SPI_ReceiveData16(pHandle->pSPI);
+    RawMecAngle = LL_SPI_ReceiveData16(pHandle->pSPI);
     LL_SPI_TransmitData16(pHandle->pSPI, 0xFFFF);
     while (!LL_SPI_IsActiveFlag_RXNE(pHandle->pSPI));
-    utemp1 = LL_SPI_ReceiveData16(pHandle->pSPI) >> 2;
+    RawMecAngle = LL_SPI_ReceiveData16(pHandle->pSPI) >> 2;
     LL_SPI_Disable(pHandle->pSPI);
     //utemp1 -= pHandle->spiZeroAngleOffset;
 #if 0
@@ -187,54 +188,60 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
 // utemp1 = -utemp1;
 // }
    // utemp1 = utemp1;
-    pHandle->latestCapture = utemp1;
-    uwtemp1                = utemp1 * (pHandle->U32MAXdivPulseNumber);
+    pHandle->latestCapture = RawMecAngle;
+    uwtemp1                = RawMecAngle * (pHandle->U32MAXdivPulseNumber);
 
 #ifndef FULL_MISRA_C_COMPLIANCY_ENC_SPD_POS
-    wtemp1 = -((int32_t)uwtemp1 >> 16U);  //cstat !MISRAC2012-Rule-1.3_n !ATH-shift-neg !MISRAC2012-Rule-10.1_R6
+    wMecAngle = ((int32_t)uwtemp1 >> 16U);  //cstat !MISRAC2012-Rule-1.3_n !ATH-shift-neg !MISRAC2012-Rule-10.1_R6
 #else
-    wtemp1 = (int32_t)uwtemp1 / 65536;
+    wMecAngle = (int32_t)uwtemp1 / 65536;
 #endif
 
     /* Computes and stores the rotor mechanical angle */
 #ifdef ENC_OFFSET_2_MEC
-if (pHandle->direction >0){
-    mecAngle                  = (((int16_t)wtemp1 + pHandle->zeroAngleOffset));
-} else {
-    mecAngle                  = -(((int16_t)wtemp1 - pHandle->zeroAngleOffset));
-}
+    /* Computes and stores the rotor electrical angle */
+    if (pHandle->direction < 0) {
+      wMecAngle = -(((int16_t)wMecAngle));
+    }
+
+    wElAngle = wMecAngle * (int32_t)(pHandle->_Super.bElToMecRatio);
+
+    if (pHandle->CalibrationEnable == true) {
+      uint16_t CalibIndex     = RawMecAngle >> pHandle->EncRaw2LUTShiftBits;
+      uint16_t CalibIndexNext = (RawMecAngle + (1 << pHandle->EncRaw2LUTShiftBits) - 1) >> pHandle->EncRaw2LUTShiftBits;
+      if (CalibIndexNext >= ENC_LUT_SIZE) {
+        CalibIndexNext = 0;
+      }
+      int16_t  DeltaAngle     = RawMecAngle - (CalibIndex << pHandle->EncRaw2LUTShiftBits);
+      int16_t  CalibSpan      = pHandle->hAngleError[CalibIndexNext] - pHandle->hAngleError[CalibIndex];
+      int16_t  CalibElAngle =
+          pHandle->hAngleError[CalibIndex] + ((DeltaAngle * CalibSpan) >> pHandle->EncRaw2LUTShiftBits);
+
+      wElAngle += CalibElAngle;
+      wMecAngle = wElAngle / (int32_t)(pHandle->_Super.bElToMecRatio);
+    }
+    mecAngle = (int16_t)wMecAngle;
     int16_t hMecAnglePrev     = pHandle->_Super.hMecAngle;
     pHandle->_Super.hMecAngle = mecAngle;
-    /* Computes and stores the rotor electrical angle */
-    elAngle                   = (mecAngle * (int16_t)(pHandle->_Super.bElToMecRatio));
-    pHandle->_Super.hElAngle  = elAngle;
+    pHandle->_Super.hElAngle  = wElAngle;
 #else
-    mecAngle                  = (int16_t)wtemp1;
+    mecAngle                  = (int16_t)wMecAngle;
     int16_t hMecAnglePrev     = pHandle->_Super.hMecAngle;
     pHandle->_Super.hMecAngle = mecAngle;
     /* Computes and stores the rotor electrical angle */
     elAngle = mecAngle * (int16_t)(pHandle->_Super.bElToMecRatio);
-    pHandle->_Super.hElAngle  = elAngle + pHandle->zeroAngleOffset;
+    pHandle->_Super.hElAngle  = elAngle;
 #endif
 
     int16_t hMecSpeedDpp = mecAngle - hMecAnglePrev;
-    
-    if (pHandle->direction >0){
-    	pHandle->_Super.wMecAngle += ((int32_t)hMecSpeedDpp);
-	} else {
-    	pHandle->_Super.wMecAngle -= ((int32_t)hMecSpeedDpp);
-	}
 
-    int16_t deltaCapture    = pHandle->latestCapture - pHandle->PreviousCapture;
-    int16_t halfPulseNumber = pHandle->PulseNumber >> 1;
-    if (deltaCapture > halfPulseNumber) {
-      deltaCapture -= pHandle->PulseNumber;
-    } else if (deltaCapture < -halfPulseNumber) {
-      deltaCapture += pHandle->PulseNumber;
+    if (pHandle->direction > 0) {
+      pHandle->_Super.wMecAngle += ((int32_t)hMecSpeedDpp);
+    } else {
+      pHandle->_Super.wMecAngle -= ((int32_t)hMecSpeedDpp);
     }
 
-    pHandle->DeltaCapturesBuffer[pHandle->DeltaCapturesIndex] = deltaCapture;
-    pHandle->PreviousCapture                                  = pHandle->latestCapture;
+    pHandle->DeltaCapturesBuffer[pHandle->DeltaCapturesIndex] = hMecSpeedDpp;
 
     pHandle->DeltaCapturesIndex++;
     if (pHandle->DeltaCapturesIndex >= pHandle->SpeedBufferSize) {
@@ -284,15 +291,15 @@ __weak bool ENC_CalcAvrgMecSpeedUnit(ENCODER_Handle_t *pHandle, int16_t *pMecSpe
   {
 #endif
     int32_t wtemp1;
-    int32_t wtemp2;
+    int16_t temp2;
     //uint32_t OverflowCntSample;
     //uint32_t CntCapture;
     //uint32_t directionSample;
 
     /* Computes & returns average mechanical speed */
-    wtemp1 = pHandle->wOverallAngleVariation * ((int32_t)pHandle->SpeedSamplingFreqUnit);
-    wtemp2 = ((int32_t)pHandle->PulseNumber) * ((int32_t)pHandle->SpeedBufferSize);
-    wtemp1 = ((0 == wtemp2) ? wtemp1 : (wtemp1 / wtemp2));
+    wtemp1 = (pHandle->wOverallAngleVariation * ((int64_t)pHandle->SpeedSamplingFreqUnit)) >> 16;
+    temp2  = pHandle->SpeedBufferSize;
+    wtemp1 = ((0 == temp2) ? wtemp1 : (wtemp1 / temp2));
 
     *pMecSpeedUnit = (int16_t)wtemp1;
 
@@ -300,7 +307,7 @@ __weak bool ENC_CalcAvrgMecSpeedUnit(ENCODER_Handle_t *pHandle, int16_t *pMecSpe
     pHandle->_Super.hMecAccelUnitP = (int16_t)(wtemp1 - pHandle->_Super.hAvrMecSpeedUnit);
 
     /* Stores average mechanical speed */
-    pHandle->_Super.hAvrMecSpeedUnit = -(int16_t)wtemp1;
+    pHandle->_Super.hAvrMecSpeedUnit = (int16_t)wtemp1;
 
     /* Checks the reliability status, then stores and returns it */
     bReliability = SPD_IsMecSpeedReliable(&pHandle->_Super, pMecSpeedUnit);

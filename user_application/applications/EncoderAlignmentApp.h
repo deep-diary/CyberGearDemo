@@ -30,34 +30,42 @@ extern "C" {
 #include "mc_interface.h"
 #include "user_application.h"
 #include "encoder_speed_pos_fdbk.h"
+#include "PositionProfileGenerator.h"
 /* Exported constants --------------------------------------------------------*/
 typedef enum {
     EAA_IDLE,
     EAA_ALIGNMENT,
-    EAA_SPINING,
+    EAA_DIR_ID,
+    EAA_COLLECT_OFFSET_FWD,
+    EAA_COLLECT_OFFSET_BWD,
+    EAA_CALC_n_SAVE,
     EAA_FINISHED,
 } EAA_STATE_t;
 
-#define EAA_DIR_DETECT_MOVEMENT_TH  (65536/4)
+
 /* Exported Variables --------------------------------------------------------*/
 
 /* Exported types ------------------------------------------------------------*/
 typedef struct {
   UserApplication_Handle_t _Super;
   ENCODER_Handle_t*        pEncoder;
+  PositionProfileGenerator_Handle_t* pPosGen;
 
   uint32_t TimeStamp;
   uint32_t AlignmentDuration;
   uint32_t SpinningDuration;
   uint16_t AlignedMecAngle;
   int32_t IdrefStep;
+  int32_t PosAccumulator;
   int16_t Idref;
+  int16_t error;
 
   union {
     uint16_t all;
     struct {
       uint16_t Start         : 1;
       uint16_t EnableSave2EE : 1;
+      uint16_t Rsvd          : 14;
     } bits;
 
   } flags;
@@ -67,6 +75,7 @@ typedef struct {
 
 void EncoderAlignmentApp_Init(UserApplication_Handle_t* pSuper);
 void EncoderAlignmentApp_Reset(UserApplication_Handle_t* pSuper);
+void EncoderAlignmentApp_OnLowFrequencyUpdate(UserApplication_Handle_t* pSuper);
 void EncoderAlignmentApp_OnBackground(UserApplication_Handle_t* pSuper);
 
 
