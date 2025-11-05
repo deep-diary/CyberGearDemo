@@ -76,6 +76,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LED_R_Pin LL_GPIO_PIN_13
+#define LED_R_GPIO_Port GPIOC
+#define LED_G_Pin LL_GPIO_PIN_14
+#define LED_G_GPIO_Port GPIOC
+#define LED_B_Pin LL_GPIO_PIN_15
+#define LED_B_GPIO_Port GPIOC
 #define M1_TEMPERATURE_Pin LL_GPIO_PIN_2
 #define M1_TEMPERATURE_GPIO_Port GPIOC
 #define M1_BUS_VOLTAGE_Pin LL_GPIO_PIN_0

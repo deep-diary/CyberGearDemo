@@ -131,6 +131,19 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    // LED闪烁测试函数 - 每隔1秒翻转PC13
+    static uint32_t last_tick = 0;
+    static uint8_t led_state = 0;
+    
+    if (HAL_GetTick() - last_tick >= 1000) {  // 1秒间隔
+      last_tick = HAL_GetTick();
+      led_state = !led_state;
+      if (led_state) {
+        LL_GPIO_SetOutputPin(LED_R_GPIO_Port, LED_R_Pin);  // 点亮LED
+      } else {
+        LL_GPIO_ResetOutputPin(LED_R_GPIO_Port, LED_R_Pin);  // 熄灭LED
+      }
+    }
   }
   /* USER CODE END 3 */
 }
@@ -1149,7 +1162,40 @@ static void MX_GPIO_Init(void)
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOE);
 
   /**/
+  LL_GPIO_SetOutputPin(LED_R_GPIO_Port, LED_R_Pin);
+
+  /**/
+  LL_GPIO_SetOutputPin(LED_G_GPIO_Port, LED_G_Pin);
+
+  /**/
+  LL_GPIO_SetOutputPin(LED_B_GPIO_Port, LED_B_Pin);
+
+  /**/
   LL_GPIO_SetOutputPin(GD_WAKE_GPIO_Port, GD_WAKE_Pin);
+
+  /**/
+  GPIO_InitStruct.Pin = LED_R_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(LED_R_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = LED_G_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+  LL_GPIO_Init(LED_G_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = LED_B_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+  LL_GPIO_Init(LED_B_GPIO_Port, &GPIO_InitStruct);
 
   /**/
   GPIO_InitStruct.Pin = GD_WAKE_Pin;
