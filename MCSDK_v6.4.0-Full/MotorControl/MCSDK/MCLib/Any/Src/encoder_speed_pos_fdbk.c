@@ -206,7 +206,7 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
 
     wElAngle = wMecAngle * (int32_t)(pHandle->_Super.bElToMecRatio);
 
-    if (pHandle->CalibrationEnable == true) {
+    if (pHandle->CalibrationCompletedFlag == true) {
       uint16_t CalibIndex     = RawMecAngle >> pHandle->EncRaw2LUTShiftBits;
       uint16_t CalibIndexNext = (RawMecAngle + (1 << pHandle->EncRaw2LUTShiftBits) - 1) >> pHandle->EncRaw2LUTShiftBits;
       if (CalibIndexNext >= ENC_LUT_SIZE) {

@@ -88,8 +88,9 @@ typedef struct
                                                           // 'define' ENC_MAX_OVERFLOW_NB*/
   uint16_t EncRaw2LUTShiftBits;
   int16_t hAngleError[ENC_LUT_SIZE];
+  uint16_t hAngleErrorCRC;
 
-  volatile bool CalibrationEnable;
+  uint8_t CalibrationCompletedFlag;
 
 } ENCODER_Handle_t;
 

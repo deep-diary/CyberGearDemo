@@ -19,6 +19,8 @@ const ParamDesc_t g_param_desc[] = {
     {&my_can_id, 0, 127, {PARAM_TYPE_UINT8, PARAM_ACCESS_READWRITE, 0}, {.i32 = 127}},
     {&ENCODER_M1.zeroAngleOffset, -32768, 32767, {PARAM_TYPE_INT16, PARAM_ACCESS_READWRITE, 0}, {.i32 = 0}},
     {&ENCODER_M1.direction, -1, 1, {PARAM_TYPE_INT16, PARAM_ACCESS_READONLY, 0}, {.i32 = 1}},
+    {&ENCODER_M1.hAngleErrorCRC, 0, 65535, {PARAM_TYPE_UINT16, PARAM_ACCESS_READWRITE, 0}, {.u32 = 0}},
+    {&ENCODER_M1.CalibrationCompletedFlag, 0, 1, {PARAM_TYPE_UINT8, PARAM_ACCESS_READWRITE, 0}, {.u32 = 0}},
 };
 
 

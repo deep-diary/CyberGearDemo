@@ -12,6 +12,8 @@
 #endif
 #include "CRC16.h"
 #include "param_manager.h"
+#include "mc_config.h"  // 包含ENCODER_M1定义
+#include "encoder_speed_pos_fdbk.h"  // 包含ENCODER_Handle_t定义
 
 
 // STM32G4 Flash NV存储实现
@@ -21,6 +23,17 @@
  * @brief Flash参数存储区起始地址(需根据芯片实际容量调整)
  */
 #define PARAM_FLASH_ADDR ((uint32_t)0x0801F800)
+
+/**
+ * @brief 编码器查找表Flash存储区起始地址(页62)
+ */
+#define ENCODER_LUT_FLASH_ADDR ((uint32_t)0x0801E800)  // Flash页61地址
+
+/**
+ * @brief 编码器查找表大小定义
+ */
+#define ENC_LUT_SIZE_SHIFT     10
+#define ENC_LUT_SIZE           (1 << ENC_LUT_SIZE_SHIFT)
 
 
 /** @brief Group0参数数量 */
@@ -33,20 +46,21 @@
 #define PARAM_GROUP3_SIZE (PARAM_ENUM_COUNT - PARAM_GROUP3_START)
 
 
-static bool ParamSaveRequested = false;
-
+bool ParamSaveRequested = false;
 
 
 
 #pragma location = ".ccmram_code"
 /**
  * @brief 写入数据到Flash NV存储区
+ * @param flash_addr Flash地址
  * @param buf 数据缓冲区指针
  * @param size 字节数
  * @retval true 写入成功
  * @retval false 写入失败
  */
-static bool NV_Write(const void *buf, uint32_t size)
+HAL_StatusTypeDef flashstatus;
+static bool NV_Write(uint32_t flash_addr, const void *buf, uint32_t size)
 {
   if (buf == NULL || size == 0) return false;
   HAL_FLASH_Unlock();
@@ -55,7 +69,7 @@ static bool NV_Write(const void *buf, uint32_t size)
   uint32_t               pageError = 0;
   erase.TypeErase                  = FLASH_TYPEERASE_PAGES;
   erase.Banks                      = FLASH_BANK_1;
-  erase.Page                       = (PARAM_FLASH_ADDR - FLASH_BASE) / FLASH_PAGE_SIZE;
+  erase.Page                       = (flash_addr - FLASH_BASE) / FLASH_PAGE_SIZE;
   erase.NbPages                    = 1;
   __disable_irq();
   if (HAL_FLASHEx_Erase(&erase, &pageError) != HAL_OK) {
@@ -66,11 +80,12 @@ static bool NV_Write(const void *buf, uint32_t size)
   __enable_irq();
   // 按字写入
   uint64_t *src  = (uint64_t *)buf;
-  uint32_t  addr = PARAM_FLASH_ADDR;
+  uint32_t  addr = flash_addr;
   uint16_t  bulkCount = (size + 7) >> 3;
   for (uint32_t i = 0; i < bulkCount; i++) {
     __disable_irq();
-    if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr, src[i]) != HAL_OK) {
+    flashstatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr, src[i]) ;
+    if (flashstatus != HAL_OK) {
       HAL_FLASH_Lock();
       __enable_irq();
       return false;
@@ -155,6 +170,12 @@ void ParamManager_Init(void)
           break;
       }
     }
+  }
+
+  if(!EncoderERR_LoadFromFlash()){
+            for (int16_t i = 0; i < ENC_LUT_SIZE; i++) {
+                ENCODER_M1.hAngleError[i] = 0;
+            }
   }
 }
 
@@ -385,7 +406,7 @@ bool ParamManager_SaveToNV(void)
     p++;
   }
   ParamBuffer.param.crc = modbus_crc_calculate((uint8_t *)ParamBuffer.param.param32, sizeof(ParamBuffer.param.param32));
-  bool success = NV_Write(&ParamBuffer.u64Buffer, sizeof(ParamBuffer));
+  bool success = NV_Write(PARAM_FLASH_ADDR, &ParamBuffer.u64Buffer, sizeof(ParamBuffer));
   ParamSaveRequested = false;
   return success;
 }
@@ -406,3 +427,57 @@ const ParamDesc_t *ParamManager_GetParamDesc(uint16_t idx) { return get_param_de
 void ParamManager_RequestParamSaving(void) { ParamSaveRequested = true; }
 
 bool ParamManager_IsParamSavePending(void) { return ParamSaveRequested; }
+
+
+/**
+ * @brief 保存编码器查找表到Flash页61
+ * @retval true 保存成功
+ * @retval false 保存失败
+ */
+bool EncoderERR_SaveToFlash(void)
+{
+    typedef union 
+  {
+    int16_t hAngleError[ENC_LUT_SIZE];
+    uint64_t u64Buffer[256];
+  } EncoderAngleErrorStorage_t;
+
+  // 直接将EncoderAngleERRParamBuffer的hAngleError指向ENCODER_M1.hAngleError
+  EncoderAngleErrorStorage_t *EncoderAngleERRParamBuffer = (EncoderAngleErrorStorage_t*)ENCODER_M1.hAngleError;
+
+  // 计算CRC校验（对整个hAngleError数组）
+  ENCODER_M1.hAngleErrorCRC = modbus_crc_calculate((uint8_t *)EncoderAngleERRParamBuffer->hAngleError,
+                                           sizeof(EncoderAngleERRParamBuffer->hAngleError));
+  
+  // 写入Flash页62 - 这里写入的实际上是ENCODER_M1.hAngleError的值
+ bool success = NV_Write(ENCODER_LUT_FLASH_ADDR, &EncoderAngleERRParamBuffer->u64Buffer, sizeof(EncoderAngleERRParamBuffer->hAngleError));
+ return success;
+}
+
+/**
+ * @brief 从Flash页62加载编码器查找表
+ * @retval true 加载成功
+ * @retval false 加载失败
+ */
+bool EncoderERR_LoadFromFlash(void)
+{
+      typedef union 
+  {
+    int16_t hAngleError[ENC_LUT_SIZE];
+    uint64_t u64Buffer[256];
+  } EncoderAngleErrorStorage_t;
+
+  // 从Flash页62读取数据
+  EncoderAngleErrorStorage_t *EncoderAngleERRParamBuffer = (EncoderAngleErrorStorage_t*)ENCODER_LUT_FLASH_ADDR;
+  
+  // 检查数据有效性（简单检查第一个和最后一个元素是否为0）
+  uint16_t crc = modbus_crc_calculate((uint8_t *)EncoderAngleERRParamBuffer->hAngleError,
+                                           sizeof(EncoderAngleERRParamBuffer->hAngleError));
+  if (crc != ENCODER_M1.hAngleErrorCRC) return false;
+  // 直接复制数据到ENCODER_M1
+  for (uint16_t i = 0; i < ENC_LUT_SIZE; i++) {
+    ENCODER_M1.hAngleError[i] = EncoderAngleERRParamBuffer->hAngleError[i];
+  }
+  
+  return true;
+}

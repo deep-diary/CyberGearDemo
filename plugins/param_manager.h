@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PARAM_BLOCK_VERSION 0x00010001u
+#define PARAM_BLOCK_VERSION 0x00010003u
 #define SOFTWARE_VERSION "20251007"
 
 // 参数名枚举，带组别前缀，并定义每组起始索引
@@ -15,6 +15,8 @@ typedef enum {
   PARAM_0000_CAN_ID  = PARAM_GROUP0_START,
   PARAM_0001_ENC_ZERO_OFFSET,
   PARAM_0002_ENC_DIR,
+  PARAM_0003_ENC_ANGLE_ERROR_CRC,
+  PARAM_0004_ENC_CALIBRATION_COMPLERED_FLAG,
   PARAM_GROUP0_END,
 
   // Group1
@@ -110,6 +112,10 @@ const ParamDesc_t *ParamManager_GetParamDesc(uint16_t idx);
 void ParamManager_RequestParamSaving(void);
 
 bool ParamManager_IsParamSavePending(void);
+
+// 编码器查找表存储函数
+bool EncoderERR_SaveToFlash(void);
+bool EncoderERR_LoadFromFlash(void);
 
 
 #endif  // PARAM_MANAGER_H

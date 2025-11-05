@@ -527,6 +527,7 @@ void MC_APP_BackgroundHook_M1(void)
   CAN_ProcessMessages();
 
   if (ParamManager_IsParamSavePending() && MC_GetSTMStateMotor1() == IDLE) {
+    EncoderERR_SaveToFlash();
     ParamManager_SaveToNV();
   }
 

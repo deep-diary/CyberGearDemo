@@ -54,7 +54,7 @@ ENCODER_Handle_t ENCODER_M1 =
   .SpeedSamplingFreqHz         = TF_REGULATION_RATE,
   .SpeedBufferSize             = ENC_AVERAGING_FIFO_DEPTH,
   .pSPI                        = SPI1,
-  .CalibrationEnable           = false,
+  .CalibrationCompletedFlag    = false,
   .EncRaw2LUTShiftBits         = ENCODER_RAW_BITS - ENC_LUT_SIZE_SHIFT,
 };
 
