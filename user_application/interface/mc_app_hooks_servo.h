@@ -68,6 +68,19 @@ extern SpeedloopBWTestApp_Handle_t SpeedLoopBWTest;
 extern USER_APP_ID UserAppID;
 extern USER_APP_ID RequestedUserAppID;
 
+/* 回零和零点设置功能结构体定义 */
+typedef struct {
+    uint8_t homingModeFlag;     // 回零模式标志位
+    uint8_t homingStartFlag;    // 回零开始标志位
+    uint16_t homingCounter;     // 回零计数器
+    uint8_t posRefSetSuccessFlag; // PosRef设置成功标志位
+    uint8_t posRefSetExecuted;  // PosRef设置已执行标志位，防止重复执行
+    uint8_t setZeroFlag;        // 设置零点标志位
+} HomingControl_t;
+
+/* 回零功能结构体变量声明 */
+extern HomingControl_t s_HomingControl;
+
 /** @} */
 
 /** @} */

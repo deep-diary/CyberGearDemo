@@ -73,6 +73,16 @@ SineGenerator_Handle_t sineGenerator;
  AngleCalcHandle_t s_angleCalcHandle;
 static uint8_t s_angleCalcInitialized = 0;
 
+/* 回零和零点设置功能结构体变量定义 */
+HomingControl_t s_HomingControl = {
+    .homingModeFlag = 0,     // 回零模式标志位
+    .homingStartFlag = 0,    // 回零开始标志位
+    .homingCounter = 0,      // 回零计数器
+    .posRefSetSuccessFlag = 0, // PosRef设置成功标志位
+    .posRefSetExecuted = 0,  // PosRef设置已执行标志位，防止重复执行
+    .setZeroFlag = 0,        // 设置零点标志位
+};
+
 /* 默认角度计算配置 */
 static AngleCalcConfig_t s_defaultAngleConfig = {
     .Va_max = 39520,       // 假设12位ADC，最大值4095
@@ -468,6 +478,55 @@ void MC_APP_LowFrequencyHook_M1(void)
     StallDetection_Update(&StallDetection_M1, MC_GetMecPositionMotor1(), SpeednTorqCtrlM1.TorqueRef >> 16);
   }
 #endif
+
+  /* 设置零点功能 */
+  if (s_HomingControl.setZeroFlag == 1) {
+    /* 将Encoder._super.wmecangle设为0 */
+    ENCODER_M1._Super.wMecAngle = 0;
+    
+    /* 将PositionCtrolApp的PosRef设为0 */
+    PositionCtrolApp.PosRef = 0;
+    PositionCtrolApp.PrevPosRef = 0;
+    PositionCtrolApp.SinRefOffset = 0;
+    PositionProfileGenerator_PresetPosition(PositionCtrolApp.pPosGen, 0);
+    PosCtrl_Reset(PositionCtrolApp._Super.pMCI->pPosCtrl);
+
+    /* 清除设置零点标志位 */
+    s_HomingControl.setZeroFlag = 0;
+  }
+
+
+
+  /* 回零功能 */
+  if (s_HomingControl.homingModeFlag == 1) {
+    /* 切换到位置控制模式 */
+    RequestedUserAppID = USER_APP_NORMAL_POS_CTRL;
+    
+    /* 如果回零开始标志位为1，开始回零过程 */
+    if (s_HomingControl.homingStartFlag == 1) {
+      /* 使能PositionCtrolApp的flags */
+      PositionCtrolApp.flags.bits.MotorOn = 1;
+
+        s_HomingControl.homingCounter++;
+
+      
+      /* 等程序执行10次后，将PosRef置0（只执行一次） */
+      if (s_HomingControl.homingCounter == 100 && s_HomingControl.posRefSetExecuted == 0) {
+        PositionCtrolApp.PosRef = 0;
+        /* 标记PosRef设置已执行，防止重复执行 */
+        s_HomingControl.posRefSetExecuted = 1;
+        
+      }
+    }
+    else{
+      PositionCtrolApp.flags.bits.MotorOn = 0;
+      s_HomingControl.homingCounter =0;
+      s_HomingControl.posRefSetExecuted = 0;
+
+    }
+  }
+
+
   UserApplication_PreLowFrequencyUpdate(pCurrentTask);
   /* USER SECTION END PostMediumFrequencyHookM1 */
 }

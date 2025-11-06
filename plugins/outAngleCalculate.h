@@ -73,6 +73,8 @@ typedef struct {
     AngleCalcIntermediate_t intermediate; ///< 计算中间量
     uint16_t outhMecAngle;              ///< 输出机械角度 (0-65535)
     uint8_t initialized;                ///< 初始化标志
+    uint8_t assignmentCompleted;        ///< 赋值完成标志位 (0:未完成, 1:已完成)
+    uint16_t executionCount;            ///< 执行计数器
 } AngleCalcHandle_t;
 
 /* Exported functions --------------------------------------------------------*/
