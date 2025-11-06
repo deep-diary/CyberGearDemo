@@ -263,6 +263,37 @@ SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {
     .SpdSweepDuration_ms    = 5000,
 };
 
+MITControlApp_Handle_t MITControlApp = {
+    ._Super =
+        {
+            .pMCI                     = &Mci[M1],
+            .pFctInit                 = NULL,
+            .pFctReset                = MITControlApp_OnReset,
+            .pFctOnStart              = NULL,
+            .pFctOnExit               = MITControlApp_OnExit,
+            .pFctPreLowFreqUpdate     = MITControlApp_OnLowFrequencyUpdate,
+            .pFctPostLowFreqUpdate    = NULL,
+            .pFctPreMediumFreqUpdate  = NULL,
+            .pFctPostMediumFreqUpdate = NULL,
+            .pFctPreHighFreqUpdate    = NULL,
+            .pFctPostHighFreqUpdate   = NULL,
+            .pFctBackgroundUpdate     = MITControlApp_OnBackground,
+            .Activated                = false,
+            .OneShootTask             = false,
+            .OneShootTaskFinished     = false,
+        },
+    .PosRef           = 0,
+    .VelRef           = 0,
+    .Kp               = 100,
+    .Kd               = 100,
+    .TorqueFF         = 0,
+    .CurrentPosition  = 0,
+    .CurrentVelocity  = 0,
+    .TorqueRef        = 0,
+    .Kt               = 100,
+    .flags            = {0}
+};
+
 #ifdef ENABLE_MECH_ID_APP
 MechParamIDApp_Handle_t MechParamIDApp = {
     ._Super =
@@ -306,6 +337,7 @@ UserApplication_Handle_t* const USER_TASKS_ARRAY[USER_APP_COUNT] = {
     &MechParamIDApp._Super,
 #endif
     &JogApp._Super,
+    &MITControlApp._Super,
 };
 
 UserApplication_Handle_t* pCurrentTask = &BasicApp._Super;

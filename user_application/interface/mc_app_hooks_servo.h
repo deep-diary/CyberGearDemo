@@ -32,6 +32,7 @@ extern "C" {
 #include "PositionCtrlApp.h"
 #include "EncoderAlignmentApp.h"
 #include "JogApp.h"
+#include "MITControlApp.h"
 /** @addtogroup MCSDK
  * @{
  */
@@ -56,6 +57,7 @@ typedef enum {
   USER_APP_MECH_ID,
 #endif
   USER_APP_JOG,
+  USER_APP_MIT_CONTROL,
   USER_APP_COUNT,
 } USER_APP_ID;
 
@@ -64,6 +66,7 @@ extern JogApp_Handle_t JogApp;
 extern EncoderAlignmentApp_Handle_t EncoderAlignmentApp;
 extern CurrentloopBWTestApp_Handle_t CurrentLoopBWTest;
 extern SpeedloopBWTestApp_Handle_t SpeedLoopBWTest;
+extern MITControlApp_Handle_t MITControlApp;
 
 extern USER_APP_ID UserAppID;
 extern USER_APP_ID RequestedUserAppID;
