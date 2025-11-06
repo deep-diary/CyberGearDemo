@@ -510,7 +510,7 @@ void MC_APP_LowFrequencyHook_M1(void)
         s_HomingControl.homingCounter++;
 
       
-      /* 等程序执行10次后，将PosRef置0（只执行一次） */
+      /* 等程序执行100次后，将PosRef置0（只执行一次） */
       if (s_HomingControl.homingCounter == 100 && s_HomingControl.posRefSetExecuted == 0) {
         PositionCtrolApp.PosRef = 0;
         /* 标记PosRef设置已执行，防止重复执行 */
@@ -549,7 +549,7 @@ void MC_APP_StartRunHook_M1(void)
 
   UserApplication_OnStart(pCurrentTask);
 }
-
+bool firstJudge =false;
 /**
  * @brief background tasks
  *
@@ -584,6 +584,13 @@ void MC_APP_BackgroundHook_M1(void)
   }
 
   CAN_ProcessMessages();
+  if ((EncoderAlignmentApp.pEncoder->iSCalibrationCompletedFlag != 0xA0A0) && (firstJudge == false))
+  //if ((EncoderAlignmentApp.pEncoder->iSCalibrationCompletedFlag != 0x0A0A) && (firstJudge == false))
+  {
+    RequestedUserAppID = USER_APP_ENCODER_ALIGNMENT;
+    EncoderAlignmentApp.flags.all = 3;
+    firstJudge = true;
+  }
 
   if (ParamManager_IsParamSavePending() && MC_GetSTMStateMotor1() == IDLE) {
     EncoderERR_SaveToFlash();

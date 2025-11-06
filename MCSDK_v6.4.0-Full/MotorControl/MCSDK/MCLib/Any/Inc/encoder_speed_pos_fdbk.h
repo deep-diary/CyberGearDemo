@@ -76,7 +76,7 @@ typedef struct
   uint16_t latestCapture;
   // uint16_t originalCapture;
   int16_t zeroAngleOffset;
-  uint16_t spiZeroAngleOffset;
+  uint16_t iSCalibrationCompletedFlag;
   int16_t direction;
   int32_t wOverallAngleVariation;
   uint8_t SpeedBufferSize;                           /*!< Size of the buffer used to calculate the average

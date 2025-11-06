@@ -173,9 +173,9 @@ void ParamManager_Init(void)
   }
 
   if(!EncoderERR_LoadFromFlash()){
-            for (int16_t i = 0; i < ENC_LUT_SIZE; i++) {
-                ENCODER_M1.hAngleError[i] = 0;
-            }
+      for (int16_t i = 0; i < ENC_LUT_SIZE; i++) {
+      ENCODER_M1.hAngleError[i] = 0;
+      }
   }
 }
 

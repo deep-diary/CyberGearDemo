@@ -86,7 +86,6 @@ __weak void ENC_Init(ENCODER_Handle_t *pHandle)
     pHandle->SpeedSamplingFreqUnit = ((uint32_t)pHandle->SpeedSamplingFreqHz * (uint32_t)SPEED_UNIT);
 
     pHandle->zeroAngleOffset = 0;
-    pHandle->spiZeroAngleOffset =0;
     pHandle->direction =1;
 
     //     /* Set IC filter for both channel 1 & 2 */
@@ -174,7 +173,6 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
     while (!LL_SPI_IsActiveFlag_RXNE(pHandle->pSPI));
     RawMecAngle = LL_SPI_ReceiveData16(pHandle->pSPI) >> 2;
     LL_SPI_Disable(pHandle->pSPI);
-    //utemp1 -= pHandle->spiZeroAngleOffset;
 #if 0
     pHandle->originalCapture = utemp1;
     utemp1 += pHandle->zeroAngleOffset;
