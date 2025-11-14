@@ -449,21 +449,10 @@ void CAN_ProcessMessages(void) {
 switch (cmd_type) {
         // ---- 类型0：获取设备ID ----
         case CMD_GET_ID: {
-            // uint32_t UID[3] = {0};// 读取芯片唯一ID
-            // UID[0] = HAL_GetUIDw0();
-            // UID[1] = HAL_GetUIDw1();
-            // UID[2] = HAL_GetUIDw2();
-            // uint8_t resp_data[8] = {
-            //     // UID[0] 低字节在前 (小端模式)
-            //     (uint8_t)(UID[0]),        (uint8_t)(UID[0] >> 8),
-            //     (uint8_t)(UID[0] >> 16),  (uint8_t)(UID[0] >> 24),
-            //     // UID[1] 低字节在前 (小端模式)
-            //     (uint8_t)(UID[1]),        (uint8_t)(UID[1] >> 8),
-            //     (uint8_t)(UID[1] >> 16),  (uint8_t)(UID[1] >> 24)
-            // };
-            // host_id = my_can_id;//按照手册应答帧格式更新本机ID
-            // CAN_SendResponseCmdType0(host_id, resp_data); // 类型0应答
-            can_broadcast_devInfo();
+        
+            uint8_t resp_data[8];
+            memcpy(resp_data,(const void*)UID_BASE,8); //设备ID
+            CAN_SendResponseCmdType0(my_can_id, resp_data); // 类型0应答
             break;
         }
 
@@ -584,14 +573,14 @@ switch (cmd_type) {
 
 // ====================== 反馈帧发送函数 ======================
 // 通讯类型0：响应帧（目标地址0xFE）
-void CAN_SendResponseCmdType0(uint16_t host_id, uint8_t* data) {
+void CAN_SendResponseCmdType0(uint16_t board_can_id, uint8_t* data) {
     FDCAN_TxHeaderTypeDef tx_header;
     CanIdUnion tx_id_union;
 
     // 构造扩展帧ID
     tx_id_union.id_info.comm_type = CMD_GET_ID;
-    tx_id_union.id_info.data2     = host_id;
-    tx_id_union.id_info.target_id = 0xFE;   // 广播地址
+    tx_id_union.id_info.data2     = board_can_id;
+    tx_id_union.id_info.target_id = CAN_ID_BROADCAST;   // 广播地址
     tx_id_union.id_info.res       = 0;
 
     // 填充帧头

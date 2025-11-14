@@ -651,11 +651,11 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
       /* Nothing to do */
     }
     /* USER CODE BEGIN HighFrequencyTask SINGLEDRIVE_3 */
-    // float_t theta  = MC_GetCurrentPosition1();
-    // theta_mech = theta/9;
-    // float_t dtheta = MC_GetMecSpeedAverageMotor1();
-    // dtheta_mech = 0.6283185307*dtheta/9;
-    // i_q = MC_GetIqdMotor1_F();
+    float_t theta  = MC_GetCurrentPosition1();
+    theta_mech = theta/9;
+    float_t dtheta = MC_GetMecSpeedAverageMotor1();
+    dtheta_mech = 0.6283185307*dtheta/9;
+    i_q = MC_GetIqdMotor1_F();
     // LineHALLA  =  RCM_GetRegularConv(&LineHALL_A);
     // LineHALLB  =  RCM_GetRegularConv(&LineHALL_B);
     /* USER CODE END HighFrequencyTask SINGLEDRIVE_3 */

@@ -48,7 +48,7 @@ extern "C" {
 /* Exported type -------------------------------------------------------------*/
 
 #define  CAN_ID_MASTER          (0X00)   //控制主机地址 - SPIE
-#define  CAN_ID_MOTOR_DEFAULT   (0X7F)   //电机默认地址 - 未配置id
+#define  CAN_ID_MOTOR_DEFAULT   (0X02)   //电机默认地址 - 未配置id
 #define  CAN_ID_BROADCAST       (0XFE)   //广播地址     - 默认接收地址
 #define  CAN_ID_DEBUG_UI        (0XFD)   //调试地址     - 上位机地址
 
