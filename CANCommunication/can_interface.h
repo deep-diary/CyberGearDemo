@@ -137,20 +137,21 @@ enum canComMode{   //定义id中24-28位
 
 // 指令类型枚举 (10种)
 typedef enum {
-    CMD_GET_ID      = 0,   // 获取设备ID
-    CMD_MOTOR_CTRL  = 1,   // 运控模式指令
-    CMD_MOTOR_STATE = 2,   // 电机状态应答
-    CMD_ENABLE      = 3,   // 电机使能
-    CMD_STOP        = 4,   // 电机停止
-    CMD_CALI        = 5,   // 编码器标定
-    CMD_SET_ZERO    = 6,   // 设置机械零位
-    CMD_SET_CANID   = 7,   // 设置CAN ID
-    CMD_READ_PARAM  = 17,  // 读取参数
-    CMD_WRITE_PARAM = 18,  // 写入参数
-    CMD_SAVE_PARAM  = 19,  // 保存参数到Flash
-    CMD_FAULT       = 21,  // 故障反馈
-    CMD_WRITE_SN    = 22,  // 写入SN
-    CMD_SEND_VERSION    = 23   // 发送版本号， 最多是32，因为是5位
+    CMD_GET_ID            = 0,   // 获取设备ID
+    CMD_MOTOR_CTRL        = 1,   // 运控模式指令
+    CMD_MOTOR_STATE       = 2,   // 电机运行状态应答
+    CMD_ENABLE            = 3,   // 电机使能
+    CMD_STOP              = 4,   // 电机停止
+    CMD_CALI              = 5,   // 编码器标定
+    CMD_SET_ZERO          = 6,   // 设置机械零位
+    CMD_SET_CANID         = 7,   // 设置CAN ID
+    CMD_SET_ZERINGMODE    = 12,   // 切换回零模式
+    CMD_READ_PARAM        = 17,  // 读取参数
+    CMD_WRITE_PARAM       = 18,  // 写入参数
+    CMD_SAVE_PARAM        = 19,  // 保存参数到Flash
+    CMD_FAULT             = 21,  // 故障反馈
+    CMD_WRITE_SN          = 22,  // 写入SN
+    CMD_SEND_VERSION      = 23   // 发送版本号， 最多是32，因为是5位
 } CanCmdType;
 
 // 状态类型枚举

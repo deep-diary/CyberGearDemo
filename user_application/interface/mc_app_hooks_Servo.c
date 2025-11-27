@@ -58,9 +58,6 @@
 #elif ENCODER_TYPE == INCREMENTAL_ENCODER
 #include "encoder_speed_pos_fdbk.h"
 #endif
-#ifdef ENABLE_MECH_ID_APP
-#include "mech_param_id_app.h"
-#endif
 #include "can_interface.h"
 #include "param_manager.h"
 #include "JogApp.h"
@@ -294,35 +291,6 @@ MITControlApp_Handle_t MITControlApp = {
     .flags            = {0}
 };
 
-#ifdef ENABLE_MECH_ID_APP
-MechParamIDApp_Handle_t MechParamIDApp = {
-    ._Super =
-        {
-            .pFctInit                 = NULL,
-            .pFctReset                = NULL,
-            .pFctOnStart              = MechParamIDApp_Reset,
-            .pFctOnExit               = NULL,
-            .pFctPreLowFreqUpdate     = NULL,
-            .pFctPostLowFreqUpdate    = NULL,
-            .pFctPreMediumFreqUpdate  = MechParamIDApp_PreMediumFreqUpdate,
-            .pFctPostMediumFreqUpdate = NULL,
-            .pFctPreHighFreqUpdate    = NULL,
-            .pFctPostHighFreqUpdate   = NULL,
-            .pFctBackgroundUpdate     = MechParamIDApp_BackgroundUpdate,
-            .Activated                = false,
-            .OneShootTask             = false,
-            .OneShootTaskFinished     = false,
-        },
-    .MechParamID  = {
-        .pSin              = &sineGenerator,
-        .Fs                = SPEED_LOOP_FREQUENCY_HZ,
-        .Kc                = CURRENT_CONV_FACTOR_INV,
-        .SpeedRefFrequency = 2.0,
-        .SpeedRefSinAmp    = {10.0, 15.0}
-    },
-    .pMCI         = &Mci[M1],
-};
-#endif
 
 #define DEFAULT_USER_APP_ID   USER_APP_NONE
 
@@ -333,9 +301,6 @@ UserApplication_Handle_t* const USER_TASKS_ARRAY[USER_APP_COUNT] = {
     &EncoderAlignmentApp._Super,
     &CurrentLoopBWTest._Super,
     &SpeedLoopBWTest._Super,
-#ifdef ENABLE_MECH_ID_APP
-    &MechParamIDApp._Super,
-#endif
     &JogApp._Super,
     &MITControlApp._Super,
 };

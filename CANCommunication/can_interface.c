@@ -423,7 +423,6 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
 // CAN报文处理函数
 void CAN_ProcessMessages(void) {
     if (!can_rx_flag) return;
-    can_rx_flag = 0;
 
     // 解析接收到的ID
     CanIdUnion rx_id_union;
@@ -446,10 +445,9 @@ void CAN_ProcessMessages(void) {
     uint8_t* rx_data = can_rx_buffer.data;
     uint8_t mymotorcanid;
 
-switch (cmd_type) {
+    switch (cmd_type) {
         // ---- 类型0：获取设备ID ----
         case CMD_GET_ID: {
-        
             uint8_t resp_data[8];
             memcpy(resp_data,(const void*)UID_BASE,8); //设备ID
             CAN_SendResponseCmdType0(my_can_id, resp_data); // 类型0应答
@@ -459,8 +457,6 @@ switch (cmd_type) {
         // ---- 类型1：运控指令 ----
         case CMD_MOTOR_CTRL:{
 
-            // 无需立即应答（由周期反馈帧响应）
-            factory_test();
 
             break;
         }
@@ -569,6 +565,7 @@ switch (cmd_type) {
             // CAN_SendResponse(cmd_type, host_id, err_code, 2); // 返回错误码
             break;
     }
+        can_rx_flag = 0; // 处理完can指令，清除接收标志
 }
 
 // ====================== 反馈帧发送函数 ======================
@@ -601,7 +598,6 @@ void CAN_SendResponseCmdType0(uint16_t board_can_id, uint8_t* data) {
 extern float_t theta_mech ;
 extern float_t dtheta_mech ;
 extern qd_f_t i_q ;
-//int float_to_uint(float x, float x_min, float x_max, int bits);
 /**
  * @brief 发送类型2反馈帧（电机运行状态）
  * @param host_id 主机CAN ID（从接收帧中提取）

@@ -595,12 +595,6 @@ __weak void FOC_CalcCurrRef(uint8_t bMotor)
   /* USER CODE END FOC_CalcCurrRef 1 */
 }
 
-float_t theta_mech =0;
-float_t dtheta_mech =0;
- qd_f_t i_q ;
-// uint16_t LineHALLA =0;
-// uint16_t LineHALLB =0;
-
 #if defined (CCMRAM)
 #if defined (__ICCARM__)
 #pragma location = ".ccmram"
@@ -651,13 +645,6 @@ __weak uint8_t FOC_HighFrequencyTask(uint8_t bMotorNbr)
       /* Nothing to do */
     }
     /* USER CODE BEGIN HighFrequencyTask SINGLEDRIVE_3 */
-    float_t theta  = MC_GetCurrentPosition1();
-    theta_mech = theta/9;
-    float_t dtheta = MC_GetMecSpeedAverageMotor1();
-    dtheta_mech = 0.6283185307*dtheta/9;
-    i_q = MC_GetIqdMotor1_F();
-    // LineHALLA  =  RCM_GetRegularConv(&LineHALL_A);
-    // LineHALLB  =  RCM_GetRegularConv(&LineHALL_B);
     /* USER CODE END HighFrequencyTask SINGLEDRIVE_3 */
   }
 
