@@ -40,9 +40,10 @@ extern "C" {
  #define TORQUE_MIN -12.0f
  #define TORQUE_MAX  12.0f
 
- #define POS_FACTOR (9 * (65536.0f / (2 * PI)))
- #define SPD_FACTOR (9 * (65536.0f / 1000.0f) / (2 * PI))
- #define CUR_FACTOR (23.0f)
+ #define POS_FACTOR (TWO_PI/(9 * 65536.0f))  //位置转换系数，65536对应减速前一圈
+ #define SPD_FACTOR (TWO_PI/(9 * 10.0f))
+ #define CUR_FACTOR (0.87 * 9.0f)              //转矩常数*减速比
+
  #define JOG_FACTOR (9 * 30.0f / 32768.0f)
 
 /* Exported type -------------------------------------------------------------*/
@@ -51,18 +52,6 @@ extern "C" {
 #define  CAN_ID_MOTOR_DEFAULT   (0X02)   //电机默认地址 - 未配置id
 #define  CAN_ID_BROADCAST       (0XFE)   //广播地址     - 默认接收地址
 #define  CAN_ID_DEBUG_UI        (0XFD)   //调试地址     - 上位机地址
-
-
-
-// 故障标志结构体
-typedef struct {
-    bool uncalibrated;   // bit21: 未标定
-    bool hall_error;     // bit20: HALL编码故障
-    bool mag_error;      // bit19: 磁编码故障
-    bool over_temp;      // bit18: 过温
-    bool over_current;   // bit17: 过流
-    bool under_voltage;  // bit16: 欠压故障
-} FaultFlags;
 
 // 参数索引枚举（基于表格）
 typedef enum {

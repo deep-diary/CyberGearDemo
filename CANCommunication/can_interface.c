@@ -595,9 +595,6 @@ void CAN_SendResponseCmdType0(uint16_t board_can_id, uint8_t* data) {
     HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &tx_header, data);
 }
 
-extern float_t theta_mech ;
-extern float_t dtheta_mech ;
-extern qd_f_t i_q ;
 /**
  * @brief 发送类型2反馈帧（电机运行状态）
  * @param host_id 主机CAN ID（从接收帧中提取）
@@ -613,59 +610,69 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
     FDCAN_TxHeaderTypeDef tx_header;
     CanIdUnion tx_id_union;
     uint8_t tx_data[8];  // 8字节数据区
-    uint8_t mode_state =2;
-
-    // 初始化故障标志结构体
-    FaultFlags fault_flags = {
-        .uncalibrated = false,
-        .hall_error = false,
-        .mag_error = false,
-        .over_temp = false,
-        .over_current = false,
-        .under_voltage = false
-    };
-
-    // ===== 1. 构造29位扩展帧ID =====
-    tx_id_union.id_info.comm_type = CMD_MOTOR_STATE;  // 通信类型2
-    tx_id_union.id_info.target_id = host_id;          // 目标主机ID
-    tx_id_union.id_info.res       = 0;
     
-    // 构造数据区2（16位：bit23~8）
+    // ===== 1. 构造29位扩展帧ID =====
+    // Bit7~0: 主机CAN ID (target_id)
+    tx_id_union.id_info.target_id = host_id;          // Bit7~0: 目标主机ID
+    
+    // Bit23~8: 数据区2
     uint16_t data2 = 0;
     // Bit8~15: 当前电机CAN ID
-    data2 |= motor_id ;
+    data2 |= (motor_id & 0xFF) << 0;                  // Bit8~15: 电机CAN ID
     
-    // Bit16~21: 故障信息（按bit位定义）
-    data2 |= (fault_flags.under_voltage ? 1 : 0) << 8; // bit16: 欠压故障
-    data2 |= (fault_flags.over_current ? 1 : 0) << 9;  // bit17: 过流
-    data2 |= (fault_flags.over_temp ? 1 : 0) << 10;     // bit18: 过温
-    data2 |= (fault_flags.mag_error ? 1 : 0) << 11;     // bit19: 磁编码故障
-    data2 |= (fault_flags.hall_error ? 1 : 0) << 12;    // bit20: HALL编码故障
-    data2 |= (fault_flags.uncalibrated ? 1 : 0) << 13;  // bit21: 未标定
-  
-    // Bit22~23: 模式状态（2位）
-    data2 |= (mode_state & 0x03) << 14;   // 0x03 = 00000011
+    // Bit16~21: 故障信息（0无1有）
+    uint16_t fault_status = MC_GetOccurredFaultsMotor1();
     
+    data2 |= ((fault_status & MC_UNDER_VOLT) ? 1 : 0) << 8;  // bit16: 欠压故障
+    data2 |= ((fault_status & MC_DP_FAULT) ? 1 : 0) << 9;    // bit17: 过流 (对应MC_DP_FAULT)
+    data2 |= ((fault_status & MC_OVER_TEMP) ? 1 : 0) << 10;  // bit18: 过温
+    data2 |= 0 << 11;                                        // bit19: 磁编码故障 (暂未实现)
+    data2 |= 0 << 12;                                        // bit20: HALL编码故障 (暂未实现)
+    data2 |= ((ENCODER_M1.iSCalibrationCompletedFlag == 0) ? 1 : 0) << 13;  // bit21: 未标定
+    
+    // Bit22~23: 模式状态
+    uint8_t mode_state = 0;  // 默认Reset模式
+    if (UserAppID == USER_APP_ENCODER_ALIGNMENT) {
+        mode_state = 1;  // Cali模式[标定]
+    }
+    else if (MC_GetSTMStateMotor1() == RUN) {
+        mode_state = 2;  // Motor模式[运行]
+    }
+    data2 |= (mode_state & 0x03) << 14;          // bit22~23: 模式状态
     tx_id_union.id_info.data2 = data2;
-    tx_id_union.id_info.res = 0;          // 保留位清零
+    
+    // Bit28~24: 通信类型2
+    tx_id_union.id_info.comm_type = CMD_MOTOR_STATE;  // Bit28~24: 通信类型2
+    tx_id_union.id_info.res = 0;                      // 保留位清零
 
     // ===== 2. 填充8字节数据区 =====
-    int p_int = float_to_uint(theta_mech, P_MIN, P_MAX, 16);
-    int v_int = float_to_uint(dtheta_mech, V_MIN, V_MAX, 16);
-    int t_int = float_to_uint(i_q.q, TORQUE_MIN, TORQUE_MAX, 16);  // =（torque/12）*32767+32767
-        //if(pos.MotorType==0) t_int = float_to_uint(t, -10.8f, 10.8f, 16);
-        //else if(pos.MotorType==1) t_int = float_to_uint(t, -8.4f, 8.4f, 16);
-    int temperature =25*10;
-
-
-    tx_data[0] = p_int>>8;
-    tx_data[1] = p_int;//Byte0~1: 当前角度（-4π~4π → 0~65535）
-    tx_data[2] = v_int>>8;
-    tx_data[3] = v_int;// Byte2~3: 当前角速度（-30~30 rad/s → 0~65535）
-    tx_data[4] = t_int>>8;
-    tx_data[5] = t_int;// Byte4~5: 当前力矩（-12~12 Nm → 0~65535）
-    tx_data[6] = temperature>>8;
-    tx_data[7] = temperature;// Byte6~7: 当前温度
+    // Byte0~1: 当前角度[0~65535]对应(-4π~4π)
+    // 使用ENCODER_M1._Super.wMecAngle乘以角度转换系数计算当前角度（优化为乘法提升速度）
+    float current_angle = (float)ENCODER_M1._Super.wMecAngle * POS_FACTOR;
+    int p_int = float_to_uint(current_angle, P_MIN, P_MAX, 16);
+    tx_data[0] = (p_int >> 8) & 0xFF;
+    tx_data[1] = p_int & 0xFF;
+    
+    // Byte2~3: 当前角速度[0~65535]对应(-30rad/s~30rad/s)
+    // 使用ENCODER_M1._Super.hAvrMecSpeedUnit乘以速度转换系数计算当前速度（优化为乘法提升速度）
+    float current_speed = (float)ENCODER_M1._Super.hAvrMecSpeedUnit * SPD_FACTOR;
+    int v_int = float_to_uint(current_speed, V_MIN, V_MAX, 16);
+    tx_data[2] = (v_int >> 8) & 0xFF;
+    tx_data[3] = v_int & 0xFF;
+    
+    // Byte4~5: 当前力矩[0~65535]对应(-12Nm~12Nm)
+    // 使用MC_GetIqdMotor1_F获取iq和id，iq乘以转换系数转换为转矩
+    qd_f_t iqd = MC_GetIqdMotor1_F();
+    float current_torque = iqd.q * CUR_FACTOR;  // iq乘以电流转换系数得到转矩
+    int t_int = float_to_uint(current_torque, TORQUE_MIN, TORQUE_MAX, 16);
+    tx_data[4] = (t_int >> 8) & 0xFF;
+    tx_data[5] = t_int & 0xFF;
+    
+    // Byte6~7: 当前温度：Temp(摄氏度)*10
+    // TODO: 需要从温度传感器获取实际温度
+    int temperature = 25 * 10;  // 临时使用25°C，需要替换为实际温度
+    tx_data[6] = (temperature >> 8) & 0xFF;
+    tx_data[7] = temperature & 0xFF;
 
     // ===== 3. 配置帧头参数 =====
     tx_header.Identifier  = tx_id_union.ext_id;
