@@ -452,11 +452,10 @@ void CAN_ProcessMessages(void) {
     uint16_t host_id = canMasterId;
     uint8_t* rx_data = can_rx_buffer.data;
     uint8_t mymotorcanid = my_can_id;
-
+    uint8_t resp_data[8];
     switch (cmd_type) {
         // ---- 类型0：获取设备ID ----
         case CMD_GET_ID: {
-            uint8_t resp_data[8];
             memcpy(resp_data,(const void*)UID_BASE,8); //设备ID
             CAN_SendResponseCmdType0(mymotorcanid, resp_data); // 类型0应答
             break;
@@ -489,7 +488,15 @@ void CAN_ProcessMessages(void) {
             RequestedUserAppID = USER_APP_ENCODER_ALIGNMENT;
             EncoderAlignmentApp.flags.bits.Start = true;
             EncoderAlignmentApp.flags.bits.EnableSave2EE = true;
-             CAN_SendResponse(CMD_CALI, host_id, NULL, 0); // 空数据应答
+            resp_data[0] =0x71;
+            resp_data[1] =0x7A;
+            resp_data[2] =0x72;
+            resp_data[3] =0xBC;
+            resp_data[4] =0xC0;
+            resp_data[5] =0xF9;
+            resp_data[6] =0xFF;
+            resp_data[7] =0xFF;
+            CAN_SendResponseCmdType5(host_id, mymotorcanid,resp_data); // 应答使能状态
             break;
 
         // ---- 类型6：设机械零位 ----
@@ -505,7 +512,6 @@ void CAN_ProcessMessages(void) {
         case CMD_SET_CANID:
             my_can_id = (rxCanIdEx.data2 & 0XFF00)>>8; 
             ParamManager_RequestParamSaving();//保存变量至flash配置
-            uint8_t resp_data[8];
             memcpy(resp_data,(const void*)UID_BASE,8); //设备ID
             CAN_SendResponseCmdType0(my_can_id, resp_data); // 类型0应答    
             break;
@@ -612,7 +618,7 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
     
     // Bit22~23: 模式状态
     uint8_t mode_state = 0;  // 默认Reset模式
-    if (UserAppID == USER_APP_ENCODER_ALIGNMENT) {
+    if (UserAppID == USER_APP_ENCODER_ALIGNMENT || RequestedUserAppID == USER_APP_ENCODER_ALIGNMENT) {
         mode_state = 1;  // Cali模式[标定]
     }
     else if (MC_GetSTMStateMotor1() == IDLE) {
@@ -669,3 +675,28 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
     HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &tx_header, tx_data);
 }
 
+// 通讯类型0：响应帧（目标地址0xFE）
+void CAN_SendResponseCmdType5(uint16_t host_id,uint8_t motor_id,uint8_t* data) {
+    FDCAN_TxHeaderTypeDef tx_header;
+    CanIdUnion tx_id_union;
+
+    // 构造扩展帧ID
+    tx_id_union.id_info.comm_type = CMD_CALI;
+    tx_id_union.id_info.data2     = motor_id;
+    tx_id_union.id_info.target_id = host_id;   // 广播地址
+    tx_id_union.id_info.res       = 0;
+
+    // 填充帧头
+    tx_header.Identifier  = tx_id_union.ext_id;
+    tx_header.IdType      = FDCAN_EXTENDED_ID;
+    tx_header.TxFrameType = FDCAN_DATA_FRAME;
+    tx_header.DataLength  = FDCAN_DLC_BYTES_8;      // 数据长度（单位：字节）
+    tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    tx_header.BitRateSwitch = FDCAN_BRS_OFF;
+    tx_header.FDFormat = FDCAN_CLASSIC_CAN;
+    tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    tx_header.MessageMarker = 0;  
+
+    // 非阻塞发送
+    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &tx_header, data);
+}

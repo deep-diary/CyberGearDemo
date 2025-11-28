@@ -223,6 +223,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 void CAN_ProcessMessages(void);
 void CAN_SendResponseCmdType0(uint8_t host_id, uint8_t* data);
 void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id);
+void CAN_SendResponseCmdType5(uint16_t host_id,uint8_t motor_id,uint8_t* data);
 ParamWriteResult Write_Parameter(uint8_t data_bytes[8]);
 void can_message_transmit(FDCAN_HandleTypeDef *hfdcan, CanTxMsg *tx_msg);
 void factory_test(void);
