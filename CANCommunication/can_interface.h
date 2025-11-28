@@ -41,10 +41,9 @@ extern "C" {
  #define TORQUE_MAX  12.0f
 
  #define POS_FACTOR (TWO_PI/(9 * 65536.0f))  //位置转换系数，65536对应减速前一圈
- #define SPD_FACTOR (TWO_PI/(9 * 10.0f))
- #define CUR_FACTOR (0.87 * 9.0f)              //转矩常数*减速比
-
- #define JOG_FACTOR (9 * 30.0f / 32768.0f)
+ #define SPD_FACTOR (TWO_PI/(9 * 10.0f))     //0.1HZ 转成rad/s，考虑减速比
+ #define CUR_FACTOR (0.87 * 9.0f)            //转矩常数*减速比
+ #define JOG_FACTOR ((9 * 10.0f)/TWO_PI)     // rad/s转成0.1HZ，考虑减速比
 
 /* Exported type -------------------------------------------------------------*/
 

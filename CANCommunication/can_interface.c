@@ -297,13 +297,9 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                         RequestedUserAppID = USER_APP_JOG;
                         jog_cmd = data_bytes[5];
 
-                        sig_temp_u16 = data_bytes[6] << 8 | data_bytes[7];
-
-                        sig_temp_i32 = (int32_t)(sig_temp_u16) - 0x7fff; //0x7fff 为速度0 的值
-
-                        sig_temp_float = sig_temp_i32 * JOG_FACTOR;
-
-                        jog_spd = sig_temp_float;
+                        uint16_t jog_spd_data = data_bytes[6] << 8 | data_bytes[7];
+                        float jog_spd_cmd = uint_to_float(jog_spd_data, V_MIN, V_MAX, 16);
+                        jog_spd = jog_spd_cmd*JOG_FACTOR;
                         if(jog_cmd == 1)
                         {
                             JogApp.flags.bits.MotorOn = true;

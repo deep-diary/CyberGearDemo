@@ -40,7 +40,7 @@ typedef struct
 
   int16_t Idref;
   int16_t JogSpeed;
-  uint16_t Acc;         /* unit: 0.01Hz/s*/
+  uint16_t Acc;         /* unit: 0.1Hz/s*/
 
   union {
     uint16_t all;

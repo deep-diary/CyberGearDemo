@@ -194,7 +194,7 @@ JogApp_Handle_t JogApp = {
         },
 
     .flags             = {0},
-    .Acc               = 200,   /* 2s/Hz*/
+    .Acc               = 20,   /* 2s/Hz*/
     .Idref             = IQMAX * 25 / 100,
     .JogSpeed          = 1 * SPEED_UNIT,
 
