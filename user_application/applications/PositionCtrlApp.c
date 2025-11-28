@@ -26,7 +26,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "PositionCtrlApp.h"
 
-
+extern bool motor_start;
+extern bool FaultReset;
 /* private constants --------------------------------------------------------*/
 
 /* private Variables --------------------------------------------------------*/
@@ -82,6 +83,8 @@ void PositionCtrlApp_OnStart(UserApplication_Handle_t* pSuper)
 void PositionCtrlApp_OnBackground(UserApplication_Handle_t* pSuper)
 {
   PositionCtrlApp_Handle_t* pHandle = (PositionCtrlApp_Handle_t*)pSuper;
+  pHandle->flags.bits.MotorOn = motor_start;
+  pHandle->flags.bits.FaultReset = FaultReset;
   switch (MCI_GetSTMState(pSuper->pMCI)) {
     case IDLE:
       if (pHandle->flags.bits.MotorOn) {
@@ -108,7 +111,7 @@ void PositionCtrlApp_OnBackground(UserApplication_Handle_t* pSuper)
       break;
   }
 }
-
+int16_t SpeedRef;
 void PositionCtrlApp_OnLowFrequencyUpdate(UserApplication_Handle_t* pSuper)
 {
     PositionCtrlApp_Handle_t* pHandle = (PositionCtrlApp_Handle_t*)pSuper;
@@ -145,7 +148,7 @@ void PositionCtrlApp_OnLowFrequencyUpdate(UserApplication_Handle_t* pSuper)
           pHandle->flags.bits.PrevEnableSineRef = false;
           deltaPos = PositionProfileGenerator_Update(pHandle->pPosGen);
         }
-        int16_t SpeedRef = PosCtrl_Update(pSuper->pMCI->pPosCtrl, deltaPos);
+        SpeedRef = PosCtrl_Update(pSuper->pMCI->pPosCtrl, deltaPos);
         MCI_ExecSpeedRamp(pSuper->pMCI, SpeedRef, 0);
     }
 }

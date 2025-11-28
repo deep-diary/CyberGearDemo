@@ -24,7 +24,7 @@
 #define DATALOGGER_NONE         0
 #define DATALOGGER_JSCOPE       1
 #define DATALOGGER_STMSTUDIO    2
-#define DATALOGGER_TYPE         DATALOGGER_NONE
+#define DATALOGGER_TYPE         DATALOGGER_STMSTUDIO
 
 #define INCREMENTAL_ENCODER     0
 #define TAMAGAWA_ENCODER        1
@@ -464,10 +464,6 @@ void MC_APP_PostMediumFrequencyHook_M1(void)
   Scheduler_MediumFrequencyUpdate();
   UserApplication_PostMediumFrequencyUpdate(pCurrentTask);
 
-#if DATALOGGER_TYPE == DATALOGGER_STMSTUDIO
-  DumpTrace();
-#endif
-
 #if DATALOGGER_TYPE == DATALOGGER_JSCOPE
   JSInterface_Sample();
 #endif
@@ -514,6 +510,9 @@ void MC_APP_LowFrequencyHook_M1(void)
 
   UserApplication_PreLowFrequencyUpdate(pCurrentTask);
   /* USER SECTION END PostMediumFrequencyHookM1 */
+  #if DATALOGGER_TYPE == DATALOGGER_STMSTUDIO
+  DumpTrace();
+#endif
 }
 
 /**

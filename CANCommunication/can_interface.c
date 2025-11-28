@@ -271,12 +271,12 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             break;
 
         case PARAM_SIN_AMP:
-            if (float_value < 0 || float_value > 1000.0f) {
+            if (float_value < 0 || float_value > 100.0f) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
                 if(UserAppID == USER_APP_NORMAL_POS_CTRL)
                 {
-                    PositionCtrolApp.RefSinAmp = float_value * (65536.0f * 9 / (2 * PI));  // 9 为减速比
+                    PositionCtrolApp.RefSinAmp = float_value * POS_FACTOR_INV; 
                 }
             }
             break;
@@ -288,6 +288,10 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                 motor_params.run_mode = (MotorRunMode)uint8_value;
 
                 switch (motor_params.run_mode) {
+                    
+                    case MODE_POSITION:
+                        RequestedUserAppID = USER_APP_NORMAL_POS_CTRL;
+                        break;
                     
                     case MODE_HOMING:
                         RequestedUserAppID = USER_APP_HOMING;
@@ -371,20 +375,17 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             break;
             
         // ======== 其他浮点参数（无特定范围限制） ========
-        case PARAM_LOC_REF://位置模式参考位置
-
-            Parameter_data  = *(float *)(data_bytes+4);  // 机械弧度
+        case PARAM_POSCTR_POSREF://位置模式参考位置
+            Parameter_data  = *(float *)(data_bytes+4);  // 输出端机械弧度
             // 位置限制在+— 12.56rad 内
             limit(&Parameter_data, -P_MAX, P_MAX);
-            // PositionCtrolApp.PosRef = Parameter_data*9;  // 高速端弧度值
-            PositionCtrolApp.PosRef = Parameter_data * POS_FACTOR;  // 转换成内部量，2pi = 63336
+            PositionCtrolApp.PosRef = Parameter_data * POS_FACTOR_INV;  // 转换成内部量，2pi = 65536
             break;
             
-        case PARAM_LIMIT_SPD: // 位置模式速度限制
+        case PARAM_POSCTR_SPDLIM: // 位置模式速度限制
             Parameter_data  = *(float *)(data_bytes+4);   // 低速端速度 -30rad/s ~ 30rad/s
-            // float speedMax = Parameter_data*9;  // 高速端速度 -270rad/s ~ 270rad/s
             limit(&Parameter_data, -V_MAX, V_MAX);
-            PositionCtrolApp.pPosGen->setVelocity = Parameter_data * SPD_FACTOR;   // 转换成内部量，2pi rad / s = 65536/1000，9为减速比
+            PositionCtrolApp.pPosGen->setVelocity = Parameter_data * POS_SPD_FACTOR;   // 转换成内部量，2pi rad / s = 65536/1000，9为减速比
             break;
             
         case PARAM_LIMIT_CUR: // 电流限制
@@ -617,7 +618,7 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
     if (UserAppID == USER_APP_ENCODER_ALIGNMENT || RequestedUserAppID == USER_APP_ENCODER_ALIGNMENT) {
         mode_state = 1;  // Cali模式[标定]
     }
-    else if (MC_GetSTMStateMotor1() == IDLE) {
+    else if (motor_start == true) {
         mode_state = 2;  // Motor模式[运行]
     }
     data2 |= (mode_state & 0x03) << 14;          // bit22~23: 模式状态

@@ -40,10 +40,12 @@ extern "C" {
  #define TORQUE_MIN -12.0f
  #define TORQUE_MAX  12.0f
 
- #define POS_FACTOR (TWO_PI/(9 * 65536.0f))  //位置转换系数，65536对应减速前一圈
+ #define POS_FACTOR (TWO_PI/(9 * 65536.0f))  //电机角度转上位机弧度，位置转换系数，65536对应减速前一圈
  #define SPD_FACTOR (TWO_PI/(9 * 10.0f))     //0.1HZ 转成rad/s，考虑减速比
  #define CUR_FACTOR (0.87 * 9.0f)            //转矩常数*减速比
  #define JOG_FACTOR ((9 * 10.0f)/TWO_PI)     // rad/s转成0.1HZ，考虑减速比
+ #define POS_SPD_FACTOR (9 * (65536.0f / 1000.0f) / TWO_PI)
+ #define POS_FACTOR_INV (1.0f/POS_FACTOR)
 
 /* Exported type -------------------------------------------------------------*/
 
@@ -57,15 +59,15 @@ typedef enum {
     PARAM_SIN_SWITCH     = 0x7001, // Sin on OFF CONTROAL
     PARAM_SIN_FREQ       = 0x7002, // 设置sin测试的频率
     PARAM_SIN_AMP        = 0x7003, // 设置sin测试的幅度
-    PARAM_RUN_MODE       = 0x7005, // 控制模式切换
+    PARAM_RUN_MODE       = 0x7005, // 控制模式切换  
     PARAM_IQ_REF         = 0x7006, // 电流模式Iq指令
     PARAM_SPD_REF        = 0x700A, // 转速模式转速指令
     PARAM_TORQUE_LIMIT   = 0x700B, // 转矩限制
     PARAM_CUR_KP         = 0x7010, // 电流Kp
     PARAM_CUR_KI         = 0x7011, // 电流Ki
     PARAM_CUR_FILT_GAIN  = 0x7014, // 电流滤波系数
-    PARAM_LOC_REF        = 0x7016, // 位置模式角度指令
-    PARAM_LIMIT_SPD      = 0x7017, // 位置模式速度限制
+    PARAM_POSCTR_POSREF  = 0x7016, // 位置模式角度指令
+    PARAM_POSCTR_SPDLIM  = 0x7017, // 位置模式速度限制
     PARAM_LIMIT_CUR      = 0x7018, // 速度位置模式电流限制
     PARAM_ROTATION       = 0x701D, // 圈数
     PARAM_LOC_KP         = 0x701E, // 位置Kp
