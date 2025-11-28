@@ -505,14 +505,9 @@ void CAN_ProcessMessages(void) {
         case CMD_SET_CANID:
             my_can_id = (rxCanIdEx.data2 & 0XFF00)>>8; 
             ParamManager_RequestParamSaving();//保存变量至flash配置
-                        // 设置扩展帧ID中的反馈类型
-            can_tx_buffer.ext_id.id_info.comm_type = CMD_SET_CANID;
-
-            // 将can_tx_buffer.data 清空，并设置需要发送的数据
-            memset(can_tx_buffer.data, 0, 8);
-            can_tx_buffer.data[0] = my_can_id;
-            // 发送帧
-            can_txd();
+            uint8_t resp_data[8];
+            memcpy(resp_data,(const void*)UID_BASE,8); //设备ID
+            CAN_SendResponseCmdType0(my_can_id, resp_data); // 类型0应答    
             break;
 
         // ---- 类型17：参数读取 ----
@@ -555,7 +550,7 @@ void CAN_ProcessMessages(void) {
 
 // ====================== 反馈帧发送函数 ======================
 // 通讯类型0：响应帧（目标地址0xFE）
-void CAN_SendResponseCmdType0(uint16_t board_can_id, uint8_t* data) {
+void CAN_SendResponseCmdType0(uint8_t board_can_id, uint8_t* data) {
     FDCAN_TxHeaderTypeDef tx_header;
     CanIdUnion tx_id_union;
 
@@ -620,7 +615,7 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
     if (UserAppID == USER_APP_ENCODER_ALIGNMENT) {
         mode_state = 1;  // Cali模式[标定]
     }
-    else if (MC_GetSTMStateMotor1() == RUN) {
+    else if (MC_GetSTMStateMotor1() == IDLE) {
         mode_state = 2;  // Motor模式[运行]
     }
     data2 |= (mode_state & 0x03) << 14;          // bit22~23: 模式状态

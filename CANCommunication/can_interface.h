@@ -221,7 +221,7 @@ extern uint8_t my_can_id;
 // 函数声明
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs);
 void CAN_ProcessMessages(void);
-void CAN_SendResponseCmdType0(uint16_t host_id, uint8_t* data);
+void CAN_SendResponseCmdType0(uint8_t host_id, uint8_t* data);
 void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id);
 ParamWriteResult Write_Parameter(uint8_t data_bytes[8]);
 void can_message_transmit(FDCAN_HandleTypeDef *hfdcan, CanTxMsg *tx_msg);

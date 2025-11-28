@@ -29,6 +29,7 @@ extern "C" {
 #include "user_application.h"
 #include "SineGenerator.h"
 #include "PositionProfileGenerator.h"
+#include "PositionCtrlApp.h"
 /* Exported constants --------------------------------------------------------*/
 
 /* Exported Variables --------------------------------------------------------*/
