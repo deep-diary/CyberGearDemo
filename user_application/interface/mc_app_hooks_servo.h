@@ -33,6 +33,7 @@ extern "C" {
 #include "EncoderAlignmentApp.h"
 #include "JogApp.h"
 #include "MITControlApp.h"
+#include "HomingApp.h"
 /** @addtogroup MCSDK
  * @{
  */
@@ -55,6 +56,7 @@ typedef enum {
   USER_APP_SPEEDLOOP_BW_TEST,
   USER_APP_JOG,
   USER_APP_MIT_CONTROL,
+  USER_APP_HOMING,
   USER_APP_COUNT,
 } USER_APP_ID;
 
@@ -64,22 +66,11 @@ extern EncoderAlignmentApp_Handle_t EncoderAlignmentApp;
 extern CurrentloopBWTestApp_Handle_t CurrentLoopBWTest;
 extern SpeedloopBWTestApp_Handle_t SpeedLoopBWTest;
 extern MITControlApp_Handle_t MITControlApp;
+extern PositionCtrlApp_Handle_t HomingApp;
 
 extern USER_APP_ID UserAppID;
 extern USER_APP_ID RequestedUserAppID;
 
-/* 回零和零点设置功能结构体定义 */
-typedef struct {
-    uint8_t homingModeFlag;     // 回零模式标志位
-    uint8_t homingStartFlag;    // 回零开始标志位
-    uint16_t homingCounter;     // 回零计数器
-    uint8_t posRefSetSuccessFlag; // PosRef设置成功标志位
-    uint8_t posRefSetExecuted;  // PosRef设置已执行标志位，防止重复执行
-    uint8_t setZeroFlag;        // 设置零点标志位
-} HomingControl_t;
-
-/* 回零功能结构体变量声明 */
-extern HomingControl_t s_HomingControl;
 
 /** @} */
 

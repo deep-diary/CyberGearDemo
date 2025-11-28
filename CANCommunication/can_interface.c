@@ -69,8 +69,10 @@ double sig_temp_double;
 
 
 uint8_t my_can_id = CAN_ID_MOTOR_DEFAULT;              // 本机默认ID
-volatile uint8_t can_rx_flag = 0;      // 接收标志
-CanRxMsg can_rx_buffer;                // 接收缓冲区
+bool motor_start = false;                              // 电机启动标志
+bool FaultReset  = false;                              // 故障复位标志  
+volatile uint8_t can_rx_flag = 0;                      // 接收标志
+CanRxMsg can_rx_buffer;                                // 接收缓冲区
 
 //----------------------------------------------------Blue---------------------
 CanTxMsg can_tx_buffer;                // 发送缓冲区
@@ -82,6 +84,7 @@ struct motoStatus mtStatus;
 
 MotorParams motor_params; // 全局参数实例
 
+extern bool setZeroFlag;
 extern FDCAN_HandleTypeDef hfdcan1;
 
 /* Private functions ------------------------------------------------------- */
@@ -232,8 +235,8 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
     uint8_t uint8_value;
     float jog_spd;
     uint8_t jog_cmd;
-    memcpy(&float_value, data_bytes, sizeof(float));
-    memcpy(&int16_value, data_bytes, sizeof(int16_t));
+    // memcpy(&float_value, data_bytes, sizeof(float));
+    // memcpy(&int16_value, data_bytes, sizeof(int16_t));
     uint8_value = data_bytes[4]; // 单字节类型直接用第一个字节
     float_value = *(float *)(data_bytes+4);
     
@@ -283,9 +286,13 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
                 motor_params.run_mode = (MotorRunMode)uint8_value;
-                RequestedUserAppID = (USER_APP_ID)uint8_value;
 
                 switch (motor_params.run_mode) {
+                    
+                    case MODE_HOMING:
+                        RequestedUserAppID = USER_APP_HOMING;
+                        break;
+
                     case MODE_JOG:  // 临时转换
                         RequestedUserAppID = USER_APP_JOG;
                         jog_cmd = data_bytes[5];
@@ -308,6 +315,7 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                             JogApp.JogSpeed = 0;
                         }
                         break;
+
                     case MODE_SPEED:
                         RequestedUserAppID = USER_APP_SPEEDLOOP_BW_TEST;
                         break;
@@ -443,14 +451,14 @@ void CAN_ProcessMessages(void) {
     uint8_t cmd_type = rxCanIdEx.comm_type;
     uint16_t host_id = canMasterId;
     uint8_t* rx_data = can_rx_buffer.data;
-    uint8_t mymotorcanid;
+    uint8_t mymotorcanid = my_can_id;
 
     switch (cmd_type) {
         // ---- 类型0：获取设备ID ----
         case CMD_GET_ID: {
             uint8_t resp_data[8];
             memcpy(resp_data,(const void*)UID_BASE,8); //设备ID
-            CAN_SendResponseCmdType0(my_can_id, resp_data); // 类型0应答
+            CAN_SendResponseCmdType0(mymotorcanid, resp_data); // 类型0应答
             break;
         }
 
@@ -460,46 +468,21 @@ void CAN_ProcessMessages(void) {
 
             break;
         }
-        // ---- 类型3：电机使能 ----
+        // ---- 类型3：电机启动 ----
         case CMD_ENABLE:
-            PositionCtrolApp.flags.bits.MotorOn =true;
-            mymotorcanid = my_can_id;//按照手册应答帧格式更新本机ID
+            motor_start = true;
             CAN_SendResponseCmdType2(host_id, mymotorcanid); // 应答使能状态
             break;
 
-        // ---- 类型4：紧急停止 ----
+        // ---- 类型4：电机停止 ----
         case CMD_STOP:
-            PositionCtrolApp.flags.bits.MotorOn =false;
-           mymotorcanid = my_can_id;//按照手册应答帧格式更新本机ID
-            if(can_rx_buffer.data[1]==0x01)
+            motor_start = false;
+            if(rx_data[0]==0x01)
 			{
-				factory_test();
-				return;
+			   FaultReset = true; // 故障复位
 			}
-			else if(can_rx_buffer.data[1]==0xA1)
-			{		
-				read_SN();
-				return;
-			}
-			else if(can_rx_buffer.data[1]==0xA2)
-			{		
-				write_SN_flash();
-				return;
-			}
-			else if((can_rx_buffer.data[1]&0xF0)==0xB0)
-			{
-				send_SN_to_master(can_rx_buffer.data[1]);
-				return;
-			}
-			else if((can_rx_buffer.data[1]&0xF0)==0xC0)
-			{
-				send_version_to_master(can_rx_buffer.data[1]);
-				return;
-			}
-            else
-            {
-                CAN_SendResponseCmdType2(canMasterId, mymotorcanid); // 应答使能状态
-            }
+            CAN_SendResponseCmdType2(canMasterId, mymotorcanid); // 应答使能状态
+
             break;
         // ---- 类型5：编码器标定复位 ----
         case CMD_CALI:
@@ -511,8 +494,11 @@ void CAN_ProcessMessages(void) {
 
         // ---- 类型6：设机械零位 ----
         case CMD_SET_ZERO:
-            // Motor_CalibrateZeroPoint();
-            CAN_SendResponse(CMD_SET_ZERO, host_id, NULL, 0); // 空数据应答
+            if(can_rx_buffer.data[0]==0x01)
+			{
+            setZeroFlag = true;
+            CAN_SendResponseCmdType2(host_id,mymotorcanid);
+			}
             break;
 
         // ---- 类型7：修改CAN ID ----
@@ -544,7 +530,6 @@ void CAN_ProcessMessages(void) {
 
             // 调用参数写入函数
             ParamWriteResult result = Write_Parameter(rx_data);
-            mymotorcanid = my_can_id;
             CAN_SendResponseCmdType2(host_id, mymotorcanid); // 应答使能状态
             break;
         }

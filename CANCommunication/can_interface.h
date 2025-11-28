@@ -58,7 +58,7 @@ typedef enum {
     PARAM_SIN_SWITCH     = 0x7001, // Sin on OFF CONTROAL
     PARAM_SIN_FREQ       = 0x7002, // 设置sin测试的频率
     PARAM_SIN_AMP        = 0x7003, // 设置sin测试的幅度
-    PARAM_RUN_MODE       = 0x7005, // 运控模式
+    PARAM_RUN_MODE       = 0x7005, // 控制模式切换
     PARAM_IQ_REF         = 0x7006, // 电流模式Iq指令
     PARAM_SPD_REF        = 0x700A, // 转速模式转速指令
     PARAM_TORQUE_LIMIT   = 0x700B, // 转矩限制
@@ -79,7 +79,8 @@ typedef enum {
     MODE_MOTION_CTRL = 0, // 运控模式
     MODE_POSITION    = 1, // 位置模式
     MODE_SPEED       = 2, // 速度模式
-    MODE_CURRENT     = 3,  // 电流模式
+    MODE_CURRENT     = 3, // 电流模式
+    MODE_HOMING      = 4, // 回零模式
     MODE_JOG         = 7  // JOG模式
 } MotorRunMode;
 

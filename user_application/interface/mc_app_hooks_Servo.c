@@ -62,23 +62,15 @@
 #include "param_manager.h"
 #include "JogApp.h"
 #include "BasicApp.h"
+#include "HomingApp.h"
 
+bool setZeroFlag = false;        // 设置零点标志位
 
 SineGenerator_Handle_t sineGenerator;
 
 /* 角度计算模块全局变量 */
- AngleCalcHandle_t s_angleCalcHandle;
+AngleCalcHandle_t s_angleCalcHandle;
 static uint8_t s_angleCalcInitialized = 0;
-
-/* 回零和零点设置功能结构体变量定义 */
-HomingControl_t s_HomingControl = {
-    .homingModeFlag = 0,     // 回零模式标志位
-    .homingStartFlag = 0,    // 回零开始标志位
-    .homingCounter = 0,      // 回零计数器
-    .posRefSetSuccessFlag = 0, // PosRef设置成功标志位
-    .posRefSetExecuted = 0,  // PosRef设置已执行标志位，防止重复执行
-    .setZeroFlag = 0,        // 设置零点标志位
-};
 
 /* 默认角度计算配置 */
 static AngleCalcConfig_t s_defaultAngleConfig = {
@@ -291,6 +283,32 @@ MITControlApp_Handle_t MITControlApp = {
     .flags            = {0}
 };
 
+PositionCtrlApp_Handle_t HomingApp = {
+  ._Super =
+      {
+          .pMCI                     = &Mci[M1],
+          .pFctInit                 = NULL,
+          .pFctReset                = HomingApp_OnReset,
+          .pFctOnStart              = HomingApp_OnStart,
+          .pFctOnExit               = NULL,
+          .pFctPreLowFreqUpdate     = HomingApp_OnLowFrequencyUpdate,
+          .pFctPostLowFreqUpdate    = NULL,
+          .pFctPreMediumFreqUpdate  = NULL,
+          .pFctPostMediumFreqUpdate = NULL,
+          .pFctPreHighFreqUpdate    = NULL,
+          .pFctPostHighFreqUpdate   = NULL,
+          .pFctBackgroundUpdate     = HomingApp_OnBackground,
+          .Activated                = false,
+          .OneShootTask             = false,
+          .OneShootTaskFinished     = false,
+      },
+  .PosRef     = 0,
+  .PrevPosRef = 0,
+  .pPosGen   = &PositionProfileGeneratorM1,
+  .Fs                     = POSITION_LOOP_FREQUENCY_HZ,
+  .flags      = {0}
+
+};
 
 #define DEFAULT_USER_APP_ID   USER_APP_NONE
 
@@ -303,6 +321,7 @@ UserApplication_Handle_t* const USER_TASKS_ARRAY[USER_APP_COUNT] = {
     &SpeedLoopBWTest._Super,
     &JogApp._Super,
     &MITControlApp._Super,
+    &HomingApp._Super,
 };
 
 UserApplication_Handle_t* pCurrentTask = &BasicApp._Super;
@@ -477,7 +496,7 @@ void MC_APP_LowFrequencyHook_M1(void)
 #endif
 
   /* 设置零点功能 */
-  if (s_HomingControl.setZeroFlag == 1) {
+  if (setZeroFlag == true) {
     /* 将Encoder._super.wmecangle设为0 */
     ENCODER_M1._Super.wMecAngle = 0;
     
@@ -489,38 +508,7 @@ void MC_APP_LowFrequencyHook_M1(void)
     PosCtrl_Reset(PositionCtrolApp._Super.pMCI->pPosCtrl);
 
     /* 清除设置零点标志位 */
-    s_HomingControl.setZeroFlag = 0;
-  }
-
-
-
-  /* 回零功能 */
-  if (s_HomingControl.homingModeFlag == 1) {
-    /* 切换到位置控制模式 */
-    RequestedUserAppID = USER_APP_NORMAL_POS_CTRL;
-    
-    /* 如果回零开始标志位为1，开始回零过程 */
-    if (s_HomingControl.homingStartFlag == 1) {
-      /* 使能PositionCtrolApp的flags */
-      PositionCtrolApp.flags.bits.MotorOn = 1;
-
-        s_HomingControl.homingCounter++;
-
-      
-      /* 等程序执行100次后，将PosRef置0（只执行一次） */
-      if (s_HomingControl.homingCounter == 100 && s_HomingControl.posRefSetExecuted == 0) {
-        PositionCtrolApp.PosRef = 0;
-        /* 标记PosRef设置已执行，防止重复执行 */
-        s_HomingControl.posRefSetExecuted = 1;
-        
-      }
-    }
-    else{
-      PositionCtrolApp.flags.bits.MotorOn = 0;
-      s_HomingControl.homingCounter =0;
-      s_HomingControl.posRefSetExecuted = 0;
-
-    }
+    setZeroFlag = false;
   }
 
 
@@ -581,8 +569,9 @@ void MC_APP_BackgroundHook_M1(void)
   }
 
   CAN_ProcessMessages();
+
+  //板子第一次上电自动校准编码器
   if ((EncoderAlignmentApp.pEncoder->iSCalibrationCompletedFlag != 0xA0A0) && (firstJudge == false))
-  //if ((EncoderAlignmentApp.pEncoder->iSCalibrationCompletedFlag != 0x0A0A) && (firstJudge == false))
   {
     RequestedUserAppID = USER_APP_ENCODER_ALIGNMENT;
     EncoderAlignmentApp.flags.all = 3;
