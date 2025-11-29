@@ -258,7 +258,7 @@ MITControlApp_Handle_t MITControlApp = {
             .pMCI                     = &Mci[M1],
             .pFctInit                 = NULL,
             .pFctReset                = MITControlApp_OnReset,
-            .pFctOnStart              = NULL,
+            .pFctOnStart              = MITControlApp_OnStart,
             .pFctOnExit               = MITControlApp_OnExit,
             .pFctPreLowFreqUpdate     = MITControlApp_OnLowFrequencyUpdate,
             .pFctPostLowFreqUpdate    = NULL,
@@ -274,12 +274,12 @@ MITControlApp_Handle_t MITControlApp = {
     .PosRef           = 0,
     .VelRef           = 0,
     .Kp               = 100,
-    .Kd               = 100,
+    .Kd               = 1,
     .TorqueFF         = 0,
     .CurrentPosition  = 0,
     .CurrentVelocity  = 0,
-    .TorqueRef        = 0,
-    .Kt               = 100,
+    .TorqueRef        = 0,//单位NM
+		.iqRefTran	      = 0,
     .flags            = {0}
 };
 

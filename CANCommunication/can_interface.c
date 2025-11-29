@@ -282,13 +282,17 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             break;
             
         case PARAM_RUN_MODE:
-            if (uint8_value < MODE_MOTION_CTRL || uint8_value > MODE_JOG) {
+            if (uint8_value < MODE_MITCTRL || uint8_value > MODE_JOG) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
                 motor_params.run_mode = (MotorRunMode)uint8_value;
 
                 switch (motor_params.run_mode) {
                     
+                    case MODE_MITCTRL:
+                    RequestedUserAppID = USER_APP_MIT_CONTROL;
+                    break;
+
                     case MODE_POSITION:
                         RequestedUserAppID = USER_APP_NORMAL_POS_CTRL;
                         break;
@@ -460,8 +464,36 @@ void CAN_ProcessMessages(void) {
 
         // ---- 类型1：运控指令 ----
         case CMD_MOTOR_CTRL:{
-
-
+            // 解析8字节数据区
+            // Byte0~1: 目标角度[0~65535]对应(-4π~4π)
+            uint16_t pos_data = (rx_data[0] << 8) | rx_data[1];
+            float pos_ref = uint_to_float(pos_data, P_MIN, P_MAX, 16);
+            
+            // Byte2~3: 目标角速度[0~65535]对应(-30rad/s~30rad/s)
+            uint16_t vel_data = (rx_data[2] << 8) | rx_data[3];
+            float vel_ref = uint_to_float(vel_data, V_MIN, V_MAX, 16);
+            
+            // Byte4~5: Kp [0~65535]对应(0.0~500.0)
+            uint16_t kp_data = (rx_data[4] << 8) | rx_data[5];
+            float kp_ref = uint_to_float(kp_data, KP_MIN, KP_MAX, 16);
+            
+            // Byte6~7: Kd [0~65535]对应(0.0~5.0)
+            uint16_t kd_data = (rx_data[6] << 8) | rx_data[7];
+            float kd_ref = uint_to_float(kd_data, KD_MIN, KD_MAX, 16);
+            
+            // 解析力矩指令：rxCanIdEx.data2 [0~65535]对应转矩12Nm
+            uint16_t torque_data = rxCanIdEx.data2;
+            float torque_ref = uint_to_float(torque_data, TORQUE_MIN, TORQUE_MAX, 16);
+            
+            // 赋值给MITControlApp参数
+            if(UserAppID == USER_APP_MIT_CONTROL) {
+                MITControlApp.PosRef = pos_ref;
+                MITControlApp.VelRef = vel_ref;
+                MITControlApp.Kp = kp_ref;
+                MITControlApp.Kd = kd_ref;
+                MITControlApp.TorqueFF = torque_ref;
+            }
+            
             break;
         }
         // ---- 类型3：电机启动 ----

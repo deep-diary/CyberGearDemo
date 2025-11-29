@@ -77,7 +77,7 @@ typedef enum {
 
 // 电机运行模式（与PARAM_RUN_MODE对应）
 typedef enum {
-    MODE_MOTION_CTRL = 0, // 运控模式
+    MODE_MITCTRL     = 0, // MIT运控模式
     MODE_POSITION    = 1, // 位置模式
     MODE_SPEED       = 2, // 速度模式
     MODE_CURRENT     = 3, // 电流模式

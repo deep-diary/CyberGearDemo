@@ -29,7 +29,8 @@ extern "C" {
 #include "user_application.h"
 
 /* Exported constants --------------------------------------------------------*/
-
+#define GR 9.0f                 //Gear ratio
+#define KT_OUT 1.0f            //KT*GR
 /* Exported Variables --------------------------------------------------------*/
 
 /* Exported types ------------------------------------------------------------*/
@@ -37,19 +38,18 @@ typedef struct {
   UserApplication_Handle_t _Super;
 
   /* MIT控制参数 */
-  int32_t PosRef;           // 位置参考值
-  int32_t VelRef;           // 速度参考值
-  uint16_t Kp;              // 位置比例增益
-  uint16_t Kd;              // 速度微分增益
-  int32_t TorqueFF;         // 前馈转矩
+  float_t PosRef;           // 位置参考值
+  float_t VelRef;           // 速度参考值
+  float_t Kp;              // 位置比例增益
+  float_t Kd;              // 速度微分增益
+  float_t TorqueFF;         // 前馈转矩
   
   /* 状态变量 */
-  int32_t CurrentPosition;  // 当前位置
-  int32_t CurrentVelocity;  // 当前速度
-  int32_t TorqueRef;        // 计算得到的转矩参考值
-  
-  /* 转矩常数 (需要根据实际电机参数调整) */
-  uint16_t Kt;              // 转矩常数
+  float_t CurrentPosition;  // 当前位置
+  float_t CurrentVelocity;  // 当前速度
+  float_t TorqueRef;        // 计算得到的转矩参考值
+  float_t iqRef;
+  int16_t iqRefTran;        //将以A为单位的电流转换为MCSDK内部电流
   
   union 
   {
@@ -65,6 +65,7 @@ typedef struct {
 
 /* Exported functions ------------------------------------------------------- */
 void MITControlApp_OnReset(UserApplication_Handle_t* pSuper);
+void MITControlApp_OnStart(UserApplication_Handle_t* pSuper);
 void MITControlApp_OnExit(UserApplication_Handle_t* pSuper);
 void MITControlApp_OnBackground(UserApplication_Handle_t* pSuper);
 void MITControlApp_OnLowFrequencyUpdate(UserApplication_Handle_t* pSuper);

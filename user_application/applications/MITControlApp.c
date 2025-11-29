@@ -19,13 +19,14 @@
 
 #include "MITControlApp.h"
 #include "parameters_conversion.h"
-
+#include "can_interface.h"
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
 /* Private constants --------------------------------------------------------*/
-#define DEFAULT_KT_VALUE     (100)  // 默认转矩常数，需要根据实际电机调整
+extern bool motor_start;
+extern bool FaultReset;
 
 /* Private Variables --------------------------------------------------------*/
 
@@ -42,22 +43,29 @@ void MITControlApp_OnReset(UserApplication_Handle_t* pSuper)
 {
     MITControlApp_Handle_t* pHandle = (MITControlApp_Handle_t*)pSuper;
     pSuper->OneShootTaskFinished = false;
-    
-    // 重置控制参数
-    pHandle->PosRef = 0;
-    pHandle->VelRef = 0;
-    pHandle->Kp = 2000;    
-    pHandle->Kd = 15000;     
-    pHandle->TorqueFF = 0;
-    pHandle->Kt = DEFAULT_KT_VALUE;
-    
-    // 重置状态变量
-    pHandle->CurrentPosition = 0;
-    pHandle->CurrentVelocity = 0;
-    pHandle->TorqueRef = 0;
-    
-    // 重置标志位
     pHandle->flags.all = 0;
+    
+    /* 初始化MIT控制参数 */
+    pHandle->PosRef           = 0.0f;     // 位置参考值 (rad)
+    pHandle->VelRef           = 0.0f;     // 速度参考值 (rad/s)
+    pHandle->Kp               = 100.0f;   // 位置比例增益
+    pHandle->Kd               = 1.0f;     // 速度微分增益
+    pHandle->TorqueFF         = 0.0f;     // 前馈转矩 (Nm)
+    pHandle->TorqueRef        = 0.0f;     // 转矩参考值 (Nm)
+    pHandle->iqRef            = 0.0f;     // 电流参考值 (A)
+    pHandle->iqRefTran        = 0;        // 转换后的电流参考值 (MCSDK内部单位)
+}
+
+void MITControlApp_OnStart(UserApplication_Handle_t* pSuper)
+{
+  MITControlApp_Handle_t* pHandle = (MITControlApp_Handle_t*)pSuper;
+
+  /* This will set the control mode to speed mode */
+  MCI_ExecSpeedRamp(pSuper->pMCI, 0, 0);
+
+  int32_t currentPosition = MCI_GetCurrentPosition(pSuper->pMCI);
+  pHandle->PosRef = (float)(currentPosition*POS_FACTOR);
+
 }
 
 /**
@@ -70,6 +78,7 @@ void MITControlApp_OnExit(UserApplication_Handle_t* pSuper)
     MITControlApp_Handle_t* pHandle = (MITControlApp_Handle_t*)pSuper;
     pHandle->flags.all = 0;
     MCI_StopMotor(pSuper->pMCI);
+    MCI_SetSpeedMode(pSuper->pMCI);
 }
 
 /**
@@ -80,14 +89,12 @@ void MITControlApp_OnExit(UserApplication_Handle_t* pSuper)
 void MITControlApp_OnBackground(UserApplication_Handle_t* pSuper)
 {
     MITControlApp_Handle_t* pHandle = (MITControlApp_Handle_t*)pSuper;
-
+   pHandle->flags.bits.MotorOn = motor_start;
+   pHandle->flags.bits.FaultReset = FaultReset;
     switch (MCI_GetSTMState(pSuper->pMCI))
     {
     case IDLE:
         if (pHandle->flags.bits.MotorOn) {
-            // 在IDLE状态时，读取当前位置作为PosRef，保证运动控制刚使能时停在原地
-            pHandle->PosRef = MCI_GetCurrentPosition(pSuper->pMCI);
-            pSuper->pMCI->LastModalitySetByUser = MCM_TORQUE_MODE;           // 切换到转矩控制模式
             qd_t Iqd = {0, 0};
             MCI_SetCurrentReferences(pSuper->pMCI, Iqd);
             MCI_StartMotor(pSuper->pMCI);
@@ -128,35 +135,28 @@ void MITControlApp_OnLowFrequencyUpdate(UserApplication_Handle_t* pSuper)
 
     if (RUN == MCI_GetSTMState(pSuper->pMCI)) {
         // 获取当前位置和速度
-        pHandle->CurrentPosition = MCI_GetCurrentPosition(pSuper->pMCI);
-        pHandle->CurrentVelocity = MCI_GetAvrgMecSpeedUnit(pSuper->pMCI)*6.28/10;//转换为rad/s
+        pHandle->CurrentPosition = MCI_GetCurrentPosition(pSuper->pMCI)*POS_FACTOR;
+        pHandle->CurrentVelocity = MCI_GetAvrgMecSpeedUnit(pSuper->pMCI)*SPD_FACTOR;
+
+        // MIT控制算法: torque_ref = Kp*(p_des - theta_mech) + TorqueFF + Kd*(v_des - dtheta_mech)    
+        pHandle->TorqueRef = pHandle->Kp * (pHandle->PosRef - pHandle->CurrentPosition) 
+                          + pHandle->TorqueFF 
+                          + pHandle->Kd * (pHandle->VelRef - pHandle->CurrentVelocity);
         
-        // MIT控制算法: torque_ref = Kp*(p_des - theta_mech) + TorqueFF + Kd*(v_des - dtheta_mech)
-        pos_error = pHandle->PosRef - pHandle->CurrentPosition;
-        vel_error = pHandle->VelRef - pHandle->CurrentVelocity;
-        
-        // 计算转矩参考值
-        pos_term = (pHandle->Kp * pos_error) / 4000;  
-        vel_term = (pHandle->Kd * vel_error) ; 
-        
-        pHandle->TorqueRef = pos_term + pHandle->TorqueFF + vel_term;
-        
-        // 将转矩参考值转换为电流参考值: i_q_ref = torque_ref / Kt
-        if (pHandle->Kt != 0) {
-            int16_t i_q_ref = (int16_t)(pHandle->TorqueRef / pHandle->Kt);
-            
+        // 将转矩参考值转换为电流参考值: TorqueRef  = torque_ref / Kt
+        pHandle->iqRef = (pHandle->TorqueRef * KT_OUT);//单位A
+        pHandle->iqRefTran = (int16_t)(pHandle->iqRef * CURRENT_CONV_FACTOR); //转换为MCSDK内部电流单位 
             // 限制电流参考值范围
-            if (i_q_ref > IQMAX) {
-                i_q_ref = IQMAX;
-            } else if (i_q_ref < -IQMAX) {
-                i_q_ref = -IQMAX;
+            if (pHandle->iqRefTran > IQMAX) {
+                pHandle->iqRefTran = IQMAX;
+            } else if (pHandle->iqRefTran < -IQMAX) {
+                pHandle->iqRefTran = -IQMAX;
             }
             
             // 设置电流参考值 (d轴电流设为0)
-            Iqd.q = i_q_ref;
+            Iqd.q = pHandle->iqRefTran;
             Iqd.d = 0;
             MCI_SetCurrentReferences(pSuper->pMCI, Iqd);
-        }
     }
 }
 
