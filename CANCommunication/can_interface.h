@@ -60,7 +60,8 @@ typedef enum {
     PARAM_SIN_FREQ           = 0x7002, // 设置sin测试的频率
     PARAM_SIN_AMP            = 0x7003, // 设置sin测试的幅度
     PARAM_RUN_MODE           = 0x7005, // 控制模式切换  
-    PARAM_IQ_REF             = 0x7006, // 电流模式Iq指令
+    PARAM_CURRENTCTR_IQREF   = 0x7006, // 电流模式Iq指令
+    PARAM_CURRENTCTR_IDREF   = 0x7007, // 电流模式Id指令
     PARAM_SPEEDCTR_SPDREF    = 0x700A, // 转速模式转速指令
     PARAM_TORQUE_LIMIT       = 0x700B, // 转矩限制
     PARAM_CUR_KP             = 0x7010, // 电流Kp

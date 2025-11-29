@@ -200,29 +200,36 @@ JogApp_Handle_t JogApp = {
 
 };
 
-CurrentloopBWTestApp_Handle_t CurrentLoopBWTest = {
+CurrentLoopBWTestApp_Handle_t CurrentLoopBWTest = {
     ._Super =
         {
             .pMCI                     = &Mci[M1],
             .pFctInit                 = NULL,
-            .pFctReset                = NULL,
+            .pFctReset                = CurrentloopBWTestApp_OnReset,
             .pFctOnStart              = CurrentloopBWTestApp_OnStart,
-            .pFctOnExit               = NULL,
+            .pFctOnExit               = CurrentloopBWTestApp_OnExit,
             .pFctPreLowFreqUpdate     = NULL,
             .pFctPostLowFreqUpdate    = NULL,
-            .pFctPreMediumFreqUpdate  = CurrentloopBWTestApp_MediumFreqUpdate,
+            .pFctPreMediumFreqUpdate  = CurrentloopBWTestApp_PreMediumFrequencyUpdate,
             .pFctPostMediumFreqUpdate = NULL,
             .pFctPreHighFreqUpdate    = NULL,
             .pFctPostHighFreqUpdate   = NULL,
-            .pFctBackgroundUpdate     = NULL,
+            .pFctBackgroundUpdate     = CurrentloopBWTestApp_OnBackground,
             .Activated                = false,
             .OneShootTask             = false,
             .OneShootTaskFinished     = false,
         },
-    .IdRef_10BitRes = 300,
-    .IdRef          = IQMAX * 30 / 100,
-    .PulseWidth_ms  = 100,
-    .PulseLevel     = false,
+    .pSin                   = &sineGenerator,
+    .Fs                     = MEDIUM_FREQUENCY_TASK_RATE,
+    .CurRefSinStartFreq01Hz = 2,
+    .CurRefSinEndFreq01Hz   = 2,
+    .CurRefSinAmp_CurrentUnit = IQMAX * 30 / 100,
+    .CurSweepDuration_ms    = 5000,
+    .CurrentRef             = 0,
+    .PrevCurrentRef         = 0,
+    .IdCurrentRef           = 0,
+    .CurrentCurrentRef          = 0,
+    .flags                  = {0}
 };
 
 SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {

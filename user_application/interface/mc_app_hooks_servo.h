@@ -27,7 +27,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 /* Includes ------------------------------------------------------------------*/
-#include "CurrentloopBWTestApp.h"
+#include "CurrentLoopBWTestApp.h"
 #include "SpeedloopBWTestApp.h"
 #include "PositionCtrlApp.h"
 #include "EncoderAlignmentApp.h"
@@ -63,7 +63,7 @@ typedef enum {
 extern PositionCtrlApp_Handle_t PositionCtrolApp;
 extern JogApp_Handle_t JogApp;
 extern EncoderAlignmentApp_Handle_t EncoderAlignmentApp;
-extern CurrentloopBWTestApp_Handle_t CurrentLoopBWTest;
+extern CurrentLoopBWTestApp_Handle_t CurrentLoopBWTest;
 extern SpeedloopBWTestApp_Handle_t SpeedLoopBWTest;
 extern MITControlApp_Handle_t MITControlApp;
 extern PositionCtrlApp_Handle_t HomingApp;

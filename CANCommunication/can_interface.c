@@ -260,6 +260,11 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                 {
                     SpeedLoopBWTest.flags.bits.EnableSineRef = uint8_value;
                 }
+                // 电流环带宽测试
+                if(UserAppID == USER_APP_CURRENTLOOP_BW_TEST)
+                {
+                    CurrentLoopBWTest.flags.bits.EnableSineRef = uint8_value;
+                }
             }
             break;
 
@@ -281,6 +286,13 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                     SpeedLoopBWTest.SpdRefSinStartFreq01Hz = freq;
                     SpeedLoopBWTest.SpdRefSinEndFreq01Hz = freq;
                 }
+                // 电流环带宽测试
+                if(UserAppID == USER_APP_CURRENTLOOP_BW_TEST)
+                {
+                    uint16_t freq = (uint16_t)(float_value * SPEED_UNIT); // 频率转换为单位0.1Hz
+                    CurrentLoopBWTest.CurRefSinStartFreq01Hz = freq;
+                    CurrentLoopBWTest.CurRefSinEndFreq01Hz = freq;
+                }
             }
             break;
 
@@ -298,6 +310,12 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                 {
                     // 将幅度转换为速度单位 (rad/s -> 0.1Hz)
                     SpeedLoopBWTest.SpdRefSinAmp_SpeedUnit = (int16_t)(float_value * JOG_FACTOR);
+                }
+                // 电流环带宽测试
+                if(UserAppID == USER_APP_CURRENTLOOP_BW_TEST)
+                {
+                    // 将幅度转换为电流单位 (A -> 内部电流单位)
+                    CurrentLoopBWTest.CurRefSinAmp_CurrentUnit = (int16_t)(float_value * CURRENT_CONV_FACTOR);
                 }
             }
             break;
@@ -320,6 +338,10 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                     
                     case MODE_SPEED:
                         RequestedUserAppID = USER_APP_SPEEDLOOP_BW_TEST;
+                        break;
+
+                    case MODE_CURRENT:
+                        RequestedUserAppID = USER_APP_CURRENTLOOP_BW_TEST;
                         break;
 
                     case MODE_HOMING:
@@ -353,11 +375,31 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             break;
             
         // ======== 浮点参数 (float) ========
-        case PARAM_IQ_REF: // 电流参考 (-23~23A)
+        case PARAM_CURRENTCTR_IQREF: // 电流参考 (-23~23A)
             if (float_value < -23.0f || float_value > 23.0f) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
-                motor_params.iq_ref = float_value;
+                // 将A单位的电流转换为内部电流值，传给电流环控制
+                int16_t internal_iq_ref = (int16_t)(float_value * CURRENT_CONV_FACTOR);
+                
+                // 给电流控制的CurrentRef (q轴)
+                if (UserAppID == USER_APP_CURRENTLOOP_BW_TEST) {
+                    CurrentLoopBWTest.CurrentRef = internal_iq_ref;
+                }
+            }
+            break;
+
+        case PARAM_CURRENTCTR_IDREF: // 电流参考 (-23~23A)
+            if (float_value < -23.0f || float_value > 23.0f) {
+                result = PARAM_OUT_OF_RANGE;
+            } else {
+                // 将A单位的电流转换为内部电流值，传给电流环控制
+                int16_t internal_id_ref = (int16_t)(float_value * CURRENT_CONV_FACTOR);
+                
+                // 给电流控制的IdCurrentRef (d轴)
+                if (UserAppID == USER_APP_CURRENTLOOP_BW_TEST) {
+                    CurrentLoopBWTest.IdCurrentRef = internal_id_ref;
+                }
             }
             break;
             

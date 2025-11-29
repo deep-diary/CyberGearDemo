@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    CurrentloopBWTestApp.c
   * @author  Motor Control Competence Center, ST Microelectronics
-  * @brief   Implementation of current loop bandwidth test task
+  * @brief   Implementation of current loop bandwidth test application
   *
   ******************************************************************************
   * @attention
@@ -43,51 +43,175 @@
   *
   ******************************************************************************
   */
-#include "CurrentloopBWTestApp.h"
+#include "CurrentLoopBWTestApp.h"
+#include "SineGenerator.h"
+#include "mc_app_hooks_servo.h"
+#include "user_application.h"
 
 /* Extra Includes -------------------------------------------------------------*/
-#include "stm32g4xx_hal.h"
-#include "parameters_conversion.h"
+
 /* Private constants --------------------------------------------------------*/
+extern bool motor_start;
+extern bool FaultReset;
 
 /* Private type -------------------------------------------------------------*/
 
 /* Private variables --------------------------------------------------------*/
 
 /* Private functions ------------------------------------------------------- */
+static void CurrentloopBWTestApp_SetupSineGenerator(CurrentLoopBWTestApp_Handle_t* pHandle)
+{
+  if (pHandle->CurRefSinStartFreq01Hz > pHandle->CurRefSinEndFreq01Hz) {
+    pHandle->pSin->hStartFrequency01Hz = pHandle->CurRefSinEndFreq01Hz;
+    pHandle->pSin->hEndFrequency01Hz   = pHandle->CurRefSinStartFreq01Hz;
+  } else {
+    pHandle->pSin->hStartFrequency01Hz = pHandle->CurRefSinStartFreq01Hz;
+    pHandle->pSin->hEndFrequency01Hz   = pHandle->CurRefSinEndFreq01Hz;
+  }
+  pHandle->pSin->hAmplitude          = pHandle->CurRefSinAmp_CurrentUnit;
+  pHandle->pSin->hDurationms         = pHandle->CurSweepDuration_ms;
+  pHandle->pSin->OutputMode          = CPG_BIPOLAR_MODE;
+
+  SineGenerator_SetUpdateFrequency(pHandle->pSin, pHandle->Fs);
+  SineGenerator_Reset(pHandle->pSin);
+}
 
 /* Global functions ------------------------------------------------------- */
+
+/**
+  * @brief  电流环带宽测试应用重置函数
+  * @param  pSuper: 用户应用句柄指针
+  * @retval None
+  */
+void CurrentloopBWTestApp_OnReset(UserApplication_Handle_t* pSuper)
+{
+  CurrentLoopBWTestApp_Handle_t* pHandle = (CurrentLoopBWTestApp_Handle_t*)pSuper;
+  pSuper->OneShootTaskFinished = false;
+  pHandle->flags.all = 0;
+  pHandle->CurrentRef = 0;
+  pHandle->PrevCurrentRef = 0;
+  pHandle->IdCurrentRef = 0;
+  pHandle->CurrentCurrentRef = 0;
+}
+
+/**
+  * @brief  电流环带宽测试应用启动函数
+  * @param  pSuper: 用户应用句柄指针
+  * @retval None
+  */
 void CurrentloopBWTestApp_OnStart(UserApplication_Handle_t* pSuper)
 {
-	CurrentloopBWTestApp_Handle_t* pHandle = (CurrentloopBWTestApp_Handle_t*)pSuper;
-	qd_t Iqdref = {0,0};
-	pHandle->TimeStamp = HAL_GetTick();
-	pHandle->PulseLevel = false;
-  pHandle->IdRef = ((int32_t)pHandle->IdRef_10BitRes * IQMAX) >> 10;
-	/* This will set the control mode to torque mode */
-	MCI_ExecTorqueRamp(pSuper->pMCI, 0, 0);
-	MCI_SetCurrentReferences(pSuper->pMCI, Iqdref);
+  CurrentLoopBWTestApp_Handle_t* pHandle = (CurrentLoopBWTestApp_Handle_t*)pSuper;
 
+  if (pHandle->flags.bits.EnableSineRef) {
+    /* Setup sine generator */
+    CurrentloopBWTestApp_SetupSineGenerator(pHandle);
+  }
+  pHandle->flags.bits.PrevEnableSineRef = pHandle->flags.bits.EnableSineRef;
+  
+  /* This will set the control mode to torque mode */
+  MCI_ExecTorqueRamp(pSuper->pMCI, 0, 0);
 }
 
-void CurrentloopBWTestApp_MediumFreqUpdate(UserApplication_Handle_t* pSuper)
+/**
+  * @brief  电流环带宽测试应用退出函数
+  * @param  pSuper: 用户应用句柄指针
+  * @retval None
+  */
+void CurrentloopBWTestApp_OnExit(UserApplication_Handle_t* pSuper)
 {
-	CurrentloopBWTestApp_Handle_t* pHandle = (CurrentloopBWTestApp_Handle_t*)pSuper;
-	if (MCI_GetSTMState(pSuper->pMCI) == RUN) {
-		if (HAL_GetTick() - pHandle->TimeStamp > pHandle->PulseWidth_ms) {
-			pHandle->TimeStamp = HAL_GetTick();
-			qd_t Iqdref        = {0, 0};
-			if (pHandle->PulseLevel) {
-				Iqdref.d = pHandle->IdRef;
-			}
-			pHandle->PulseLevel = !pHandle->PulseLevel;
-			MCI_SetCurrentReferences(pSuper->pMCI, Iqdref);
-		}
-	}
+  CurrentLoopBWTestApp_Handle_t* pHandle = (CurrentLoopBWTestApp_Handle_t*)pSuper;
+  pHandle->flags.all = 0;
+  MCI_StopMotor(pSuper->pMCI);
+  MCI_ExecSpeedRamp(pSuper->pMCI, 0, 0);
 }
 
-void CurrentloopBWTestApp_SetIdRef10BitRes(CurrentloopBWTestApp_Handle_t* pHandle, uint16_t IdRef_10BitRes)
+/**
+  * @brief  电流环带宽测试应用后台更新函数
+  * @param  pSuper: 用户应用句柄指针
+  * @retval None
+  */
+void CurrentloopBWTestApp_OnBackground(UserApplication_Handle_t* pSuper)
 {
-  pHandle->IdRef_10BitRes = IdRef_10BitRes;
-  pHandle->IdRef = ((int32_t)IdRef_10BitRes * IQMAX) >> 10;
+  CurrentLoopBWTestApp_Handle_t* pHandle = (CurrentLoopBWTestApp_Handle_t*)pSuper;
+  pHandle->flags.bits.MotorOn = motor_start;
+  pHandle->flags.bits.FaultReset = FaultReset;
+  
+  switch (MCI_GetSTMState(pSuper->pMCI)) {
+    case IDLE:
+      if (pHandle->flags.bits.MotorOn) {
+        MCI_StartMotor(pSuper->pMCI);
+      }
+      break;
+
+    case RUN:
+      if (!pHandle->flags.bits.MotorOn) {
+        MCI_StopMotor(pSuper->pMCI);
+      }
+      break;
+
+    case FAULT_NOW:
+    case FAULT_OVER:
+      if (pHandle->flags.bits.FaultReset) {
+        MCI_FaultAcknowledged(pSuper->pMCI);
+        pHandle->flags.bits.FaultReset = false;
+      }
+      break;
+
+    default:
+      break;
+  }
+}
+
+/**
+  * @brief  电流环带宽测试应用中频更新函数
+  * @param  pSuper: 用户应用句柄指针
+  * @retval None
+  */
+void CurrentloopBWTestApp_PreMediumFrequencyUpdate(UserApplication_Handle_t* pSuper)
+{
+  CurrentLoopBWTestApp_Handle_t* pHandle = (CurrentLoopBWTestApp_Handle_t*)pSuper;
+  
+  if (MCI_GetSTMState(pSuper->pMCI) == RUN) {
+    if (pHandle->flags.bits.EnableSineRef) {
+      if (!pHandle->flags.bits.PrevEnableSineRef) {
+        /* 正弦测试使能状态改变，重置正弦发生器 */
+        CurrentloopBWTestApp_SetupSineGenerator(pHandle);
+        pHandle->flags.bits.PrevEnableSineRef = true;
+      }
+      
+      /* 生成正弦扫频信号 */
+      pHandle->CurrentCurrentRef = SineGenerator_Update(pHandle->pSin);
+      
+      /* 如果扫频完成，停止电机 */
+      if (pHandle->pSin->chirpMode && SineGenerator_IsCompleted(pHandle->pSin)) {
+        MCI_StopMotor(pSuper->pMCI);
+      }
+    } else {
+      if (pHandle->flags.bits.PrevEnableSineRef) {
+        /* 关闭正弦测试时，以关闭时的正弦测试电流为电流指令 */
+        pHandle->CurrentRef = pHandle->CurrentCurrentRef;
+        pHandle->PrevCurrentRef = pHandle->CurrentCurrentRef;
+      } else if (pHandle->CurrentRef != pHandle->PrevCurrentRef) {
+        /* 用户更新了新的电流控制指令 */
+        pHandle->PrevCurrentRef = pHandle->CurrentRef;
+      }
+      pHandle->flags.bits.PrevEnableSineRef = false;
+      pHandle->CurrentCurrentRef = pHandle->CurrentRef;
+    }
+    
+    /* 执行电流控制 */
+    qd_t IqdRef = {0, 0};
+    
+    // if (pHandle->flags.bits.EnableSineRef) {
+    //   /* 正弦测试使能时使用d轴电流 */
+    //   IqdRef.q = 0;
+    //   IqdRef.d = pHandle->CurrentCurrentRef;
+    // } else {
+    //   /* 正弦测试未使能时使用q轴电流 */
+      IqdRef.q = pHandle->CurrentCurrentRef;
+      IqdRef.d = pHandle->IdCurrentRef;
+    // }
+    MCI_SetCurrentReferences(pSuper->pMCI, IqdRef);
+  }
 }

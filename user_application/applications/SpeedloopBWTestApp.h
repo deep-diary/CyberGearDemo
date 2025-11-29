@@ -34,7 +34,7 @@ extern "C" {
 
 /* Exported type -------------------------------------------------------------*/
 typedef struct {
-  UserApplication_Handle_t       _Super;
+  UserApplication_Handle_t _Super;
   SineGenerator_Handle_t* pSin;
 
   uint16_t Fs;
