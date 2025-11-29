@@ -250,9 +250,15 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             if (uint8_value < 0 || uint8_value > 1) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
+                // 位置环正弦测试
                 if(UserAppID == USER_APP_NORMAL_POS_CTRL)
                 {
                     PositionCtrolApp.flags.bits.EnableSineRef = uint8_value;
+                }
+                // 速度环正弦测试
+                if(UserAppID == USER_APP_SPEEDLOOP_BW_TEST)
+                {
+                    SpeedLoopBWTest.flags.bits.EnableSineRef = uint8_value;
                 }
             }
             break;
@@ -261,11 +267,19 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             if (float_value < 0 || float_value > 1000.0f) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
+                // 位置环正弦测试
                 if(UserAppID == USER_APP_NORMAL_POS_CTRL)
                 {
                     uint16_t freq = (uint16_t)(float_value * SPEED_UNIT); // 频率转换为单位0.1Hz
                     PositionCtrolApp.RefSinStartFreq01Hz = freq ;  // Fs 为时间参数，单位是ms，而传递过来的参数是频率
                     PositionCtrolApp.RefSinEndFreq01Hz = freq ;  // Fs 为时间参数，单位是ms，而传递过来的参数是频率
+                }
+                // 速度环正弦测试
+                if(UserAppID == USER_APP_SPEEDLOOP_BW_TEST)
+                {
+                    uint16_t freq = (uint16_t)(float_value * SPEED_UNIT); // 频率转换为单位0.1Hz
+                    SpeedLoopBWTest.SpdRefSinStartFreq01Hz = freq;
+                    SpeedLoopBWTest.SpdRefSinEndFreq01Hz = freq;
                 }
             }
             break;
@@ -274,9 +288,16 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             if (float_value < 0 || float_value > 100.0f) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
+                // 位置环正弦测试
                 if(UserAppID == USER_APP_NORMAL_POS_CTRL)
                 {
-                    PositionCtrolApp.RefSinAmp = float_value * POS_FACTOR_INV; 
+                    PositionCtrolApp.RefSinAmp = float_value * POS_FACTOR_INV;
+                }
+                // 速度环正弦测试
+                if(UserAppID == USER_APP_SPEEDLOOP_BW_TEST)
+                {
+                    // 将幅度转换为速度单位 (rad/s -> 0.1Hz)
+                    SpeedLoopBWTest.SpdRefSinAmp_SpeedUnit = (int16_t)(float_value * JOG_FACTOR);
                 }
             }
             break;
@@ -297,6 +318,10 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                         RequestedUserAppID = USER_APP_NORMAL_POS_CTRL;
                         break;
                     
+                    case MODE_SPEED:
+                        RequestedUserAppID = USER_APP_SPEEDLOOP_BW_TEST;
+                        break;
+
                     case MODE_HOMING:
                         RequestedUserAppID = USER_APP_HOMING;
                         break;
@@ -319,10 +344,6 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
                             JogApp.JogSpeed = 0;
                         }
                         break;
-
-                    case MODE_SPEED:
-                        RequestedUserAppID = USER_APP_SPEEDLOOP_BW_TEST;
-                        break;
                     default:
                         // RequestedUserAppID is already set to (USER_APP_ID)uint8_value
                         // No further action needed for other modes if they map directly.
@@ -340,11 +361,18 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             }
             break;
             
-        case PARAM_SPD_REF: // 转速参考 (-30~30rad/s)
+        case PARAM_SPEEDCTR_SPDREF: // 转速参考 (-30~30rad/s)
             if (float_value < -30.0f || float_value > 30.0f) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
-                motor_params.spd_ref = float_value;
+                // 将rad为单位的浮点数转换为电机内部0.1Hz的值
+                int16_t internal_speed_ref = (int16_t)(float_value * JOG_FACTOR);
+                
+                // 给速度控制的speedref
+                if (UserAppID == USER_APP_SPEEDLOOP_BW_TEST) {
+                    SpeedLoopBWTest.SpeedRef = internal_speed_ref;
+                }
+
             }
             break;
             
@@ -392,11 +420,17 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             PositionCtrolApp.pPosGen->setVelocity = Parameter_data * POS_SPD_FACTOR;   // 转换成内部量，2pi rad / s = 65536/1000，9为减速比
             break;
             
-        case PARAM_LIMIT_CUR: // 电流限制
+        case PARAM_SPEEDCTR_CURLIM: // 速度环电流限制
             if (float_value < 0 || float_value > 23.0f) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
-                motor_params.limit_cur = float_value;
+                // 将单位A的电流转换为内部电流大小
+                int16_t internal_current_limit = (int16_t)(float_value * CURRENT_CONV_FACTOR);
+                
+                // 通过PID_SetUpperOutputLimit和PID_SetLowerOutputLimit函数将电流限幅至PIDSpeedHandle_M1参数
+                PID_SetUpperOutputLimit(&PIDSpeedHandle_M1, internal_current_limit);
+                PID_SetLowerOutputLimit(&PIDSpeedHandle_M1, -internal_current_limit);
+
             }
             break;
             

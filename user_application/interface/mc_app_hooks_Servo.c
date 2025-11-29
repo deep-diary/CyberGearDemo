@@ -229,9 +229,9 @@ SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {
     ._Super =
         {
             .pMCI                     = &Mci[M1],
-            .pFctInit               = NULL,
-            .pFctReset              = NULL,
-            .pFctOnStart            = SpeedloopBWTestApp_OnStart,
+            .pFctInit                 = NULL,
+            .pFctReset                = SpeedloopBWTestApp_OnReset,
+            .pFctOnStart              = SpeedloopBWTestApp_OnStart,
             .pFctOnExit               = NULL,
             .pFctPreLowFreqUpdate     = NULL,
             .pFctPostLowFreqUpdate    = NULL,
@@ -239,10 +239,10 @@ SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {
             .pFctPostMediumFreqUpdate = NULL,
             .pFctPreHighFreqUpdate    = NULL,
             .pFctPostHighFreqUpdate   = NULL,
-            .pFctBackgroundUpdate     = NULL,
-            .Activated              = false,
-            .OneShootTask           = false,
-            .OneShootTaskFinished   = false,
+            .pFctBackgroundUpdate     = SpeedloopBWTestApp_OnBackground,
+            .Activated                = false,
+            .OneShootTask             = false,
+            .OneShootTaskFinished     = false,
         },
     .pSin                   = &sineGenerator,
     .Fs                     = MEDIUM_FREQUENCY_TASK_RATE,
@@ -250,6 +250,10 @@ SpeedloopBWTestApp_Handle_t SpeedLoopBWTest = {
     .SpdRefSinEndFreq01Hz   = 2,
     .SpdRefSinAmp_SpeedUnit = 1 * SPEED_UNIT,
     .SpdSweepDuration_ms    = 5000,
+    .SpeedRef               = 0,
+    .PrevSpeedRef           = 0,
+    .CurrentSpeedRef        = 0,
+    .flags                  = {0}
 };
 
 MITControlApp_Handle_t MITControlApp = {

@@ -17,8 +17,8 @@
  ******************************************************************************
  */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __SpeedloopBWTestApp_H
-#define __SpeedloopBWTestApp_H
+#ifndef __SPEEDLOOPBWTESTAPP_H
+#define __SPEEDLOOPBWTESTAPP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,13 +42,31 @@ typedef struct {
   uint16_t SpdRefSinEndFreq01Hz;
   int16_t SpdRefSinAmp_SpeedUnit;
   uint16_t SpdSweepDuration_ms;
+  
+  int16_t SpeedRef;                    // 速度参考值 (速度单位)
+  int16_t PrevSpeedRef;                // 上一速度参考值
+  int16_t CurrentSpeedRef;             // 当前速度参考值 (速度单位)
+  
+  union
+  {
+    uint16_t all;
+    struct
+    {
+      uint16_t MotorOn : 1;
+      uint16_t FaultReset : 1;
+      uint16_t EnableSineRef : 1;      // 正弦测试使能标志
+      uint16_t PrevEnableSineRef : 1;  // 上一正弦测试使能状态
+    } bits;
+  } flags;
 
 } SpeedloopBWTestApp_Handle_t;
 
 /* Exported variables --------------------------------------------------------*/
 
 /* Exported functions ------------------------------------------------------- */
+void SpeedloopBWTestApp_OnReset(UserApplication_Handle_t* pSuper);
 void SpeedloopBWTestApp_OnStart(UserApplication_Handle_t* pSuper);
+void SpeedloopBWTestApp_OnBackground(UserApplication_Handle_t* pSuper);
 void SpeedloopBWTestApp_PreMediumFrequencyUpdate(UserApplication_Handle_t* pSuper);
 
 #ifdef __cplusplus
