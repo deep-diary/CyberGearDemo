@@ -47,7 +47,7 @@
 #include "SineGenerator.h"
 #include "mc_app_hooks_servo.h"
 #include "user_application.h"
-
+#include "speed_torq_ctrl.h"
 /* Extra Includes -------------------------------------------------------------*/
 
 /* Private constants --------------------------------------------------------*/
@@ -110,6 +110,7 @@ void CurrentloopBWTestApp_OnStart(UserApplication_Handle_t* pSuper)
   pHandle->flags.bits.PrevEnableSineRef = pHandle->flags.bits.EnableSineRef;
   
   /* This will set the control mode to torque mode */
+  STC_SetSpeedSensor(pSuper->pMCI->pSTC, pSuper->pMCI->pPosCtrl->pSPD);
   MCI_ExecTorqueRamp(pSuper->pMCI, 0, 0);
 }
 
@@ -203,15 +204,17 @@ void CurrentloopBWTestApp_PreMediumFrequencyUpdate(UserApplication_Handle_t* pSu
     /* 执行电流控制 */
     qd_t IqdRef = {0, 0};
     
-    // if (pHandle->flags.bits.EnableSineRef) {
-    //   /* 正弦测试使能时使用d轴电流 */
-    //   IqdRef.q = 0;
-    //   IqdRef.d = pHandle->CurrentCurrentRef;
-    // } else {
-    //   /* 正弦测试未使能时使用q轴电流 */
+    if (pHandle->flags.bits.EnableSineRef) {
+      /* 正弦测试使能时使用d轴电流 */
+      IqdRef.q = 0;
+      IqdRef.d = pHandle->CurrentCurrentRef;
+    } else {
+      /* 正弦测试未使能时使用q轴电流 */
       IqdRef.q = pHandle->CurrentCurrentRef;
       IqdRef.d = pHandle->IdCurrentRef;
-    // }
+     }
+    //STC_SetSpeedSensor(pHandle->_Super->pMCI->*pSTC, &ENCODER_M1._Super);
     MCI_SetCurrentReferences(pSuper->pMCI, IqdRef);
+    //MCI_ExecTorqueRamp(pSuper->pMCI, pHandle->CurrentCurrentRef, 1000);
   }
 }

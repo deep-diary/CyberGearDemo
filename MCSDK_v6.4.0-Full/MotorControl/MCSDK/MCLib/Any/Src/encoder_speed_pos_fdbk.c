@@ -232,13 +232,7 @@ __weak int16_t ENC_CalcAngle(ENCODER_Handle_t *pHandle)
 #endif
 
     int16_t hMecSpeedDpp = mecAngle - hMecAnglePrev;
-
-    if (pHandle->direction > 0) {
-      pHandle->_Super.wMecAngle += ((int32_t)hMecSpeedDpp);
-    } else {
-      pHandle->_Super.wMecAngle -= ((int32_t)hMecSpeedDpp);
-    }
-
+    pHandle->_Super.wMecAngle += ((int32_t)hMecSpeedDpp);
     pHandle->DeltaCapturesBuffer[pHandle->DeltaCapturesIndex] = hMecSpeedDpp;
 
     pHandle->DeltaCapturesIndex++;
