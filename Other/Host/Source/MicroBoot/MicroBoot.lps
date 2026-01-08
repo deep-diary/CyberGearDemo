@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="12"/>
+    <BuildModes Active="Release"/>
+    <Units Count="34">
+      <Unit0>
+        <Filename Value="MicroBoot.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="9"/>
+        <CursorPos X="40" Y="47"/>
+        <UsageCount Value="95"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="mainunit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="MainForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MainUnit"/>
+        <TopLine Value="236"/>
+        <CursorPos X="55" Y="254"/>
+        <ExtraEditorCount Value="1"/>
+        <ExtraEditor1>
+          <EditorIndex Value="-1"/>
+          <WindowIndex Value="1"/>
+          <TopLine Value="377"/>
+          <CursorPos Y="394"/>
+        </ExtraEditor1>
+        <UsageCount Value="95"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../LibOpenBLT/bindings/pascal/openblt.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="OpenBlt"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="104"/>
+        <CursorPos X="29" Y="113"/>
+        <UsageCount Value="95"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="currentconfig.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="CurrentConfig"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="211"/>
+        <CursorPos X="28" Y="125"/>
+        <UsageCount Value="95"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="configgroups.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ConfigGroups"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="773"/>
+        <CursorPos X="65" Y="830"/>
+        <ExtraEditorCount Value="1"/>
+        <ExtraEditor1>
+          <EditorIndex Value="-1"/>
+          <TopLine Value="646"/>
+          <CursorPos X="51" Y="678"/>
+        </ExtraEditor1>
+        <UsageCount Value="92"/>
+        <Loaded Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="settingsdialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="SettingsForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="SettingsDialog"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="164"/>
+        <CursorPos X="23" Y="185"/>
+        <UsageCount Value="87"/>
+        <Loaded Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="sessionxcpdialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="SessionXcpForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="SessionXcpDialog"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="226"/>
+        <CursorPos X="52" Y="230"/>
+        <UsageCount Value="84"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="customutil.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="CustomUtil"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="51"/>
+        <CursorPos X="28" Y="76"/>
+        <UsageCount Value="77"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="transportxcprs232dialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="TransportXcpRs232Form"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="TransportXcpRs232Dialog"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="155"/>
+        <CursorPos X="25" Y="170"/>
+        <UsageCount Value="70"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="TransportXcpCanForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="TransportXcpCanDialog"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="110"/>
+        <CursorPos X="85" Y="137"/>
+        <UsageCount Value="70"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="transportxcpusbdialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="TransportXcpUsbForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="TransportXcpUsbDialog"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="25"/>
+        <CursorPos X="55" Y="34"/>
+        <UsageCount Value="70"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="transportxcptcpipdialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="TransportXcpTcpIpForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="TransportXcpTcpIpDialog"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="26"/>
+        <CursorPos Y="49"/>
+        <UsageCount Value="69"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="miscellaneousdialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="MiscellaneousForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MiscellaneousDialog"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="203"/>
+        <CursorPos X="45" Y="209"/>
+        <UsageCount Value="59"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="firmwareupdate.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="FirmwareUpdate"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="1135"/>
+        <CursorPos X="27" Y="1145"/>
+        <UsageCount Value="57"/>
+        <Loaded Value="True"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="stopwatch.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="StopWatch"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="57"/>
+        <CursorPos Y="67"/>
+        <UsageCount Value="35"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="filelogger.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="FileLogger"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="134"/>
+        <CursorPos X="19" Y="140"/>
+        <UsageCount Value="32"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="transportxcpmbrtudialog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="TransportXcpMbRtuForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="TransportXcpMbRtuDialog"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="111"/>
+        <CursorPos X="53" Y="113"/>
+        <UsageCount Value="28"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/rtl/objpas/sysutils/osutilsh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="7"/>
+        <CursorPos X="10" Y="43"/>
+        <UsageCount Value="10"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/rtl/unix/sysutils.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="82"/>
+        <CursorPos X="68"/>
+        <UsageCount Value="10"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/rtl/objpas/sysutils/sysutilh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="130"/>
+        <CursorPos X="22" Y="171"/>
+        <UsageCount Value="10"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/rtl/objpas/fgl.pp"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="/usr/lib/lazarus/1.6.2/lcl/forms.pp"/>
+        <UnitName Value="Forms"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="591"/>
+        <CursorPos X="14" Y="614"/>
+        <UsageCount Value="10"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="/usr/lib/lazarus/1.6.2/lcl/controls.pp"/>
+        <UnitName Value="Controls"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="144"/>
+        <CursorPos X="3" Y="169"/>
+        <UsageCount Value="10"/>
+      </Unit22>
+      <Unit23>
+        <Filename Value="/usr/lib/lazarus/1.6.2/lcl/lcltype.pp"/>
+        <UnitName Value="LCLType"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="41"/>
+        <CursorPos X="3" Y="66"/>
+        <UsageCount Value="10"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/packages/rtl-objpas/src/inc/strutils.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="9"/>
+        <CursorPos X="65" Y="31"/>
+        <UsageCount Value="10"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="/usr/lib/lazarus/1.6.2/lcl/include/control.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3243"/>
+        <CursorPos Y="3268"/>
+        <UsageCount Value="10"/>
+      </Unit25>
+      <Unit26>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/rtl/objpas/classes/classesh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1619"/>
+        <CursorPos X="17" Y="1643"/>
+        <UsageCount Value="10"/>
+      </Unit26>
+      <Unit27>
+        <Filename Value="/usr/lib/lazarus/1.6.2/lcl/extctrls.pp"/>
+        <UnitName Value="ExtCtrls"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="127"/>
+        <CursorPos X="3" Y="182"/>
+        <UsageCount Value="10"/>
+      </Unit27>
+      <Unit28>
+        <Filename Value="/usr/lib/lazarus/1.6.2/lcl/customtimer.pas"/>
+        <UnitName Value="CustomTimer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="25"/>
+        <CursorPos X="3" Y="29"/>
+        <UsageCount Value="10"/>
+      </Unit28>
+      <Unit29>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/packages/sdl/src/logger.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit29>
+      <Unit30>
+        <Filename Value="/usr/share/fpcsrc/3.0.0/packages/fcl-base/src/eventlog.pp"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit30>
+      <Unit31>
+        <Filename Value="/usr/lib/lazarus/1.6.2/components/lazutils/lazfileutils.pas"/>
+        <UnitName Value="LazFileUtils"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="73"/>
+        <UsageCount Value="10"/>
+      </Unit31>
+      <Unit32>
+        <Filename Value="/usr/lib/lazarus/1.6.2/components/lazutils/fileutil.pas"/>
+        <UnitName Value="FileUtil"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="102"/>
+        <CursorPos X="26" Y="144"/>
+        <UsageCount Value="10"/>
+      </Unit32>
+      <Unit33>
+        <Filename Value="../../../../../../lazarus/fpc/3.2.2/source/rtl/objpas/fgl.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1057"/>
+        <CursorPos X="51" Y="1073"/>
+        <UsageCount Value="10"/>
+      </Unit33>
+    </Units>
+    <OtherDefines Count="1">
+      <Define0 Value="UseCThreads"/>
+    </OtherDefines>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="transportxcpcandialog.pas"/>
+      </Position1>
+      <Position2>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="55" Column="87" TopLine="19"/>
+      </Position2>
+      <Position3>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="119" Column="56" TopLine="89"/>
+      </Position3>
+      <Position4>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="165" Column="42" TopLine="129"/>
+      </Position4>
+      <Position5>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="167" Column="45" TopLine="131"/>
+      </Position5>
+      <Position6>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="236" Column="44" TopLine="200"/>
+      </Position6>
+      <Position7>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="346" Column="54" TopLine="310"/>
+      </Position7>
+      <Position8>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="348" Column="60" TopLine="312"/>
+      </Position8>
+      <Position9>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="408" Column="56" TopLine="372"/>
+      </Position9>
+      <Position10>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="409" Column="55" TopLine="373"/>
+      </Position10>
+      <Position11>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="411" Column="58" TopLine="375"/>
+      </Position11>
+      <Position12>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="104" Column="22" TopLine="92"/>
+      </Position12>
+      <Position13>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="267" Column="57" TopLine="231"/>
+      </Position13>
+      <Position14>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="269" Column="64" TopLine="233"/>
+      </Position14>
+      <Position15>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="270" Column="67" TopLine="234"/>
+      </Position15>
+      <Position16>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="134" Column="23" TopLine="115"/>
+      </Position16>
+      <Position17>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="180" Column="47" TopLine="144"/>
+      </Position17>
+      <Position18>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="182" Column="45" TopLine="146"/>
+      </Position18>
+      <Position19>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="251" Column="44" TopLine="215"/>
+      </Position19>
+      <Position20>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="361" Column="54" TopLine="325"/>
+      </Position20>
+      <Position21>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="363" Column="60" TopLine="327"/>
+      </Position21>
+      <Position22>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="368" Column="48" TopLine="333"/>
+      </Position22>
+      <Position23>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="425" Column="56" TopLine="389"/>
+      </Position23>
+      <Position24>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="426" Column="55" TopLine="390"/>
+      </Position24>
+      <Position25>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="428" Column="58" TopLine="392"/>
+      </Position25>
+      <Position26>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="108" Column="27" TopLine="98"/>
+      </Position26>
+      <Position27>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="137" Column="23" TopLine="125"/>
+      </Position27>
+      <Position28>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="184" Column="47" TopLine="161"/>
+      </Position28>
+      <Position29>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="186" Column="45" TopLine="161"/>
+      </Position29>
+      <Position30>
+        <Filename Value="transportxcpcandialog.pas"/>
+        <Caret Line="255" Column="44" TopLine="219"/>
+      </Position30>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode="default"/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>
