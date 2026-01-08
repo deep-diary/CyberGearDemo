@@ -428,7 +428,7 @@ void MC_APP_PostHighFrequencyHook_M1(void)
     uint16_t LineHALLB = RCM_GetRegularConv(&LineHALL_B);
     
     /* 获取机械角度 */
-    int16_t hMecAngle = MC_GetCurrentPosition1();
+    int16_t hMecAngle = ENCODER_M1._Super.hMecAngle;
     
     /* 计算输出角度 */
     if (OutAngleCalc_Compute(&s_angleCalcHandle, LineHALLA, LineHALLB, hMecAngle) == 0) {
