@@ -466,6 +466,10 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
             if (float_value < 0 || float_value > 23.0f) {
                 result = PARAM_OUT_OF_RANGE;
             } else {
+                // 限制在-5A到5A范围内
+                if (float_value >= IQMAX_A) {
+                    float_value = IQMAX_A; // 限制最大值为5A
+                }   
                 // 将单位A的电流转换为内部电流大小
                 int16_t internal_current_limit = (int16_t)(float_value * CURRENT_CONV_FACTOR);
                 
