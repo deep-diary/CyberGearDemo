@@ -45,6 +45,7 @@
  */
 /* Includes ------------------------------------------------------------------*/
 #include "can_interface.h"
+#include <string.h>
 
 /* Extra Includes -------------------------------------------------------------*/
 #include "arm_math.h"
@@ -56,16 +57,6 @@
 
 /* Private variables --------------------------------------------------------*/
 #define DEFAULT_CAN_ID  CAN_ID_MOTOR_DEFAULT
-
-// 定义临时全局变量，便于观测调试
-uint8_t sig_temp_u8;
-uint16_t sig_temp_u16;
-uint32_t sig_temp_u32;
-int8_t sig_temp_i8;
-int16_t sig_temp_i16;
-int32_t sig_temp_i32;
-float sig_temp_float;
-double sig_temp_double;
 
 
 uint8_t my_can_id = CAN_ID_MOTOR_DEFAULT;              // 本机默认ID
@@ -80,6 +71,376 @@ uint8_t canId = CAN_ID_MOTOR_DEFAULT;
 uint8_t canMasterId = CAN_ID_DEBUG_UI;
 struct motoStatus mtStatus;
 
+
+/* ======================= SCOPE (CAN DAQ) =======================
+ * Protocol summary (rx extended ID):
+ *   comm_type = 0x0A (CMD_SCOPE_DATA)
+ *   subcmd    = high byte of data2: (data2 >> 8) & 0xFF
+ *     0x00 : set bandwidth/sample rate (Hz, 1..1000)
+ *     0x02 : start
+ *     0x03 : stop
+ *     others: set variable IDs, encoded as:
+ *         hi_nibble = total_vars_minus_1  (total = (subcmd>>4) + 1), max 8
+ *         lo_nibble = start_index (1-based), typically 1 or 5 for <=8 vars
+ *         payload contains up to 4x uint16 var IDs (little-endian), in order
+ *
+ * TX data frames:
+ *   1 sample may be split into multiple CAN frames.
+ *   First frame of each sample includes timestamp16 at Byte0-1 (HAL_GetTick()&0xFFFF).
+ *   Continuation frames contain only data bytes (no timestamp).
+ *   Variable bytes are packed strictly in the order configured by the host.
+ *   Types/sizes:
+ *     uint8/int8 : 1 byte
+ *     uint16/int16 : 2 bytes
+ *     uint32/int32/float : 4 bytes
+ *   String is not supported for sampling.
+ * =============================================================== */
+#ifndef SCOPE_MAX_VARS
+#define SCOPE_MAX_VARS 8u
+#endif
+
+typedef enum {
+    SCOPE_VT_U8 = 0,
+    SCOPE_VT_I8,
+    SCOPE_VT_U16,
+    SCOPE_VT_I16,
+    SCOPE_VT_U32,
+    SCOPE_VT_I32,
+    SCOPE_VT_F32
+} ScopeVarType;
+
+typedef struct {
+    uint16_t id;
+    uint8_t  type; /* ScopeVarType */
+    uint8_t  size; /* bytes: 1/2/4 */
+} ScopeVarDesc;
+
+/* ID descriptor table (from host parameter table screenshots, 0x2000~0x2019). */
+static const ScopeVarDesc g_scope_desc_tbl[] = {
+    {0x2000u, SCOPE_VT_U16, 2u}, /* echoPara1 */
+    {0x2001u, SCOPE_VT_U16, 2u}, /* echoPara2 */
+    {0x2002u, SCOPE_VT_U16, 2u}, /* echoPara3 */
+    {0x2003u, SCOPE_VT_U16, 2u}, /* echoPara4 */
+    {0x2004u, SCOPE_VT_U32, 4u}, /* echoFreHz */
+    {0x2005u, SCOPE_VT_F32, 4u}, /* MechOffset */
+    {0x2006u, SCOPE_VT_F32, 4u}, /* MechPos_init */
+    {0x2007u, SCOPE_VT_F32, 4u}, /* limit_torque */
+    {0x2008u, SCOPE_VT_F32, 4u}, /* I_FW_MAX */
+    {0x2009u, SCOPE_VT_U8,  1u}, /* motor_index */
+    {0x200Au, SCOPE_VT_U8,  1u}, /* CAN_ID */
+    {0x200Bu, SCOPE_VT_U8,  1u}, /* CAN_MASTER */
+    {0x200Cu, SCOPE_VT_U32, 4u}, /* CAN_TIMEOUT */
+    {0x200Du, SCOPE_VT_I16, 2u}, /* motorOverTemp */
+    {0x200Eu, SCOPE_VT_U32, 4u}, /* overTempTime */
+    {0x200Fu, SCOPE_VT_F32, 4u}, /* GearRatio */
+    {0x2010u, SCOPE_VT_U8,  1u}, /* Tq_caliType */
+    {0x2011u, SCOPE_VT_F32, 4u}, /* cur_filt_gain */
+    {0x2012u, SCOPE_VT_F32, 4u}, /* cur_kp */
+    {0x2013u, SCOPE_VT_F32, 4u}, /* cur_ki */
+    {0x2014u, SCOPE_VT_F32, 4u}, /* spd_kp */
+    {0x2015u, SCOPE_VT_F32, 4u}, /* spd_ki */
+    {0x2016u, SCOPE_VT_F32, 4u}, /* loc_kp */
+    {0x2017u, SCOPE_VT_F32, 4u}, /* spd_filt_gain */
+    {0x2018u, SCOPE_VT_F32, 4u}, /* Limit_spd */
+    {0x2019u, SCOPE_VT_F32, 4u}, /* limit_cur */
+};
+
+typedef struct {
+    uint8_t  enabled;
+    uint8_t  running;
+
+    /* User configuration */
+    uint16_t sample_hz;               /* 1..1000 */
+    uint8_t  var_count;               /* 0..SCOPE_MAX_VARS */
+    uint16_t var_id[SCOPE_MAX_VARS];  /* configured order (as host sets) */
+
+    /* Precomputed plan (recomputed when var_id changes) */
+    uint16_t payload_len;             /* total bytes of all variables (without timestamp) */
+    uint8_t  frames_per_sample;       /* number of CAN frames to send for one sample group */
+
+    /* 1kHz scheduler state */
+    uint16_t sample_phase_acc;        /* 0..999: sample timing accumulator */
+    uint32_t tx_phase_acc;            /* send timing accumulator (0..999 with wrap), allow big increments */
+
+    /* One-sample snapshot + TX state */
+    uint16_t last_ts16;               /* timestamp captured at sample moment */
+    uint8_t  sample_buf[64];          /* concatenated variable bytes in order (allow cross-frame split) */
+    uint16_t sample_buf_len;          /* equals payload_len at capture time */
+    uint8_t  tx_in_progress;          /* 1 when there is pending frames to send */
+    uint8_t  tx_frame_idx;            /* next frame index to send: 0..frames_per_sample-1 */
+} ScopeState;
+
+ScopeState g_scope = {0};
+
+bool Scope_ReadVarBytes(uint16_t id, uint8_t *out, uint8_t size)
+{
+    /* User should override this function in application to bind real variables. */
+    (void)id;
+    if (out && size) {
+        memset(out, 0, size);
+    }
+    return false;
+}
+
+static uint8_t Scope_GetSizeById(uint16_t id)
+{
+    for (uint32_t i = 0; i < (uint32_t)(sizeof(g_scope_desc_tbl)/sizeof(g_scope_desc_tbl[0])); i++) {
+        if (g_scope_desc_tbl[i].id == id) {
+            return g_scope_desc_tbl[i].size;
+        }
+    }
+    /* Default: treat unknown IDs as 4 bytes */
+    return 4u;
+}
+
+static void Scope_SendFrame(const uint8_t payload[8])
+{
+    uint8_t data[8];
+    memcpy(data, payload, 8u);
+    /* status_subcmd = 0x02 indicates scope streaming data */
+    CAN_SendScopeData((uint16_t)canMasterId, (uint8_t)my_can_id, 0x02u, data);
+}
+
+static void Scope_RecomputePlan(void)
+{
+    uint16_t len = 0u;
+
+    uint8_t n = g_scope.var_count;
+    if (n > SCOPE_MAX_VARS) {
+        n = SCOPE_MAX_VARS;
+    }
+
+    for (uint8_t i = 0u; i < n; i++) {
+        uint16_t id = g_scope.var_id[i];
+        if (id == 0u) {
+            continue;
+        }
+
+        uint8_t sz = Scope_GetSizeById(id);
+        if (sz != 1u && sz != 2u && sz != 4u) {
+            continue;
+        }
+
+        /* Safety: do not exceed snapshot buffer. */
+        if ((uint16_t)(len + (uint16_t)sz) > (uint16_t)sizeof(g_scope.sample_buf)) {
+            break;
+        }
+        len = (uint16_t)(len + (uint16_t)sz);
+    }
+
+    g_scope.payload_len = len;
+
+    /* One sample group is sent across:
+       - frame0: timestamp(2B) + up to 6B data
+       - continuation frames: 8B data each
+       Variable bytes are allowed to cross frame boundaries. */
+    if (len == 0u) {
+        g_scope.frames_per_sample = 0u;
+    } else if (len <= 6u) {
+        g_scope.frames_per_sample = 1u;
+    } else {
+        uint16_t rem = (uint16_t)(len - 6u);
+        g_scope.frames_per_sample = (uint8_t)(1u + (uint8_t)((rem + 7u) / 8u));
+    }
+}
+
+static void Scope_CaptureSnapshot(void)
+{
+    /* Capture time + all variable bytes into a contiguous buffer (in host-configured order). */
+    g_scope.last_ts16 = (uint16_t)(HAL_GetTick() & 0xFFFFu);
+
+    uint16_t w = 0u;
+
+    uint8_t n = g_scope.var_count;
+    if (n > SCOPE_MAX_VARS) {
+        n = SCOPE_MAX_VARS;
+    }
+
+    for (uint8_t i = 0u; i < n; i++) {
+        uint16_t id = g_scope.var_id[i];
+        if (id == 0u) {
+            continue;
+        }
+
+        uint8_t sz = Scope_GetSizeById(id);
+        if (sz != 1u && sz != 2u && sz != 4u) {
+            continue;
+        }
+
+        if ((uint16_t)(w + (uint16_t)sz) > (uint16_t)sizeof(g_scope.sample_buf)) {
+            break;
+        }
+
+        uint8_t tmp[4] = {0};
+        Scope_ReadVarBytes(id, tmp, sz);
+
+        memcpy(&g_scope.sample_buf[w], tmp, sz);
+        w = (uint16_t)(w + (uint16_t)sz);
+    }
+
+    g_scope.sample_buf_len = w;
+    g_scope.payload_len = w;
+
+    /* Recompute frames based on actual captured length (robust against partially configured IDs). */
+    if (w == 0u) {
+        g_scope.frames_per_sample = 0u;
+        g_scope.tx_in_progress = 0u;
+        return;
+    } else if (w <= 6u) {
+        g_scope.frames_per_sample = 1u;
+    } else {
+        uint16_t rem = (uint16_t)(w - 6u);
+        g_scope.frames_per_sample = (uint8_t)(1u + (uint8_t)((rem + 7u) / 8u));
+    }
+
+    /* Start TX state machine for this sample. */
+    g_scope.tx_frame_idx = 0u;
+    g_scope.tx_in_progress = 1u;
+
+    /* Force immediate sending of frame0 at this tick. */
+    g_scope.tx_phase_acc = 1000u;
+}
+
+static void Scope_SendFrameByIndex(uint8_t frame_idx)
+{
+    uint8_t payload[8];
+    memset(payload, 0, sizeof(payload));
+
+    if (g_scope.sample_buf_len == 0u) {
+        return;
+    }
+
+    if (frame_idx == 0u) {
+        /* First frame carries timestamp at bytes 0..1 and up to 6 bytes data at bytes 2..7. */
+        uint16_t ts = g_scope.last_ts16;
+        payload[0] = (uint8_t)(ts & 0xFFu);
+        payload[1] = (uint8_t)((ts >> 8) & 0xFFu);
+
+        uint16_t copy = g_scope.sample_buf_len;
+        if (copy > 6u) {
+            copy = 6u;
+        }
+        memcpy(&payload[2], &g_scope.sample_buf[0], copy);
+    } else {
+        /* Continuation frames carry pure data (8 bytes each). */
+        uint16_t off = (uint16_t)(6u + (uint16_t)(frame_idx - 1u) * 8u);
+        if (off >= g_scope.sample_buf_len) {
+            return;
+        }
+        uint16_t remain = (uint16_t)(g_scope.sample_buf_len - off);
+        uint16_t copy = remain;
+        if (copy > 8u) {
+            copy = 8u;
+        }
+        memcpy(&payload[0], &g_scope.sample_buf[off], copy);
+    }
+
+    Scope_SendFrame(payload);
+}
+
+
+/* Called from 1kHz hook (MC_APP_LowFrequencyHook_M1). */
+void CAN_Scope_Tick1kHz(void)
+{
+    if (!g_scope.enabled || !g_scope.running || g_scope.sample_hz == 0u) {
+        return;
+    }
+
+    /* 1) Sample scheduler: phase accumulator in Hz-domain (DDS). */
+    g_scope.sample_phase_acc = (uint16_t)(g_scope.sample_phase_acc + g_scope.sample_hz);
+    if (g_scope.sample_phase_acc >= 1000u) {
+        g_scope.sample_phase_acc = (uint16_t)(g_scope.sample_phase_acc - 1000u);
+
+        /* At each sample instant, capture timestamp + all variable bytes (one snapshot). */
+        Scope_CaptureSnapshot();
+    }
+
+    /* 2) TX scheduler: evenly send frames of the latest snapshot within each sample period.
+          We advance a phase accumulator with send_rate = sample_hz * frames_per_sample.
+          This may send multiple frames in one tick if needed (e.g. high rate / many frames). */
+    if (g_scope.tx_in_progress && g_scope.frames_per_sample > 0u) {
+        uint32_t send_rate = (uint32_t)g_scope.sample_hz * (uint32_t)g_scope.frames_per_sample;
+        g_scope.tx_phase_acc += send_rate;
+
+        while (g_scope.tx_phase_acc >= 1000u && g_scope.tx_in_progress) {
+            g_scope.tx_phase_acc -= 1000u;
+
+            if (g_scope.tx_frame_idx < g_scope.frames_per_sample) {
+                Scope_SendFrameByIndex(g_scope.tx_frame_idx);
+                g_scope.tx_frame_idx++;
+            }
+
+            if (g_scope.tx_frame_idx >= g_scope.frames_per_sample) {
+                g_scope.tx_in_progress = 0u;
+            }
+        }
+    }
+}
+
+static void Scope_HandleSetBandwidth(const uint8_t *rx_data)
+{
+    /* Hz in little-endian: use uint16 from bytes 0..1 (compat with host sending u8). */
+    uint16_t hz = (uint16_t)rx_data[0] | (uint16_t)((uint16_t)rx_data[1] << 8);
+    if (hz == 0u) {
+        hz = 1u;
+    }
+    if (hz > 1000u) {
+        hz = 1000u;
+    }
+    g_scope.sample_hz = hz;
+}
+
+static void Scope_HandleSetVarIds(uint8_t subcmd, const uint8_t *rx_data)
+{
+    uint8_t total = (uint8_t)((subcmd >> 4) + 1u); /* 1..16, but we clamp to 8 */
+    uint8_t start = (uint8_t)(subcmd & 0x0Fu);     /* 1-based start index */
+
+    if (total > SCOPE_MAX_VARS) {
+        total = SCOPE_MAX_VARS;
+    }
+    if (start == 0u) {
+        start = 1u;
+    }
+    if (start > total) {
+        /* invalid, ignore */
+        return;
+    }
+
+    if (start == 1u) {
+        memset(g_scope.var_id, 0, sizeof(g_scope.var_id));
+        g_scope.var_count = total;
+    } else {
+        /* keep existing total if already set */
+        if (g_scope.var_count < total) {
+            g_scope.var_count = total;
+        }
+    }
+
+    uint8_t base = (uint8_t)(start - 1u);
+    for (uint8_t i = 0u; i < 4u; i++) {
+        uint8_t idx = (uint8_t)(base + i);
+        if (idx >= g_scope.var_count || idx >= SCOPE_MAX_VARS) {
+            break;
+        }
+        uint16_t id = (uint16_t)rx_data[i*2u] | (uint16_t)((uint16_t)rx_data[i*2u + 1u] << 8);
+        if (id == 0u) {
+            break;
+        }
+        g_scope.var_id[idx] = id;
+    }
+
+
+    /* Recompute payload length and frames-per-sample whenever var list changes. */
+    Scope_RecomputePlan();
+
+    /* Reset TX state so next sample uses new plan. */
+    g_scope.tx_in_progress = 0u;
+    g_scope.tx_frame_idx = 0u;
+    g_scope.tx_phase_acc = 0u;
+
+    g_scope.enabled = 1u;
+}
+
 //----------------------------------------------------Blue---------------------
 
 MotorParams motor_params; // 全局参数实例
@@ -88,103 +449,6 @@ extern bool setZeroFlag;
 extern FDCAN_HandleTypeDef hfdcan1;
 
 /* Private functions ------------------------------------------------------- */
-
-/********************************************************************************************
-* Function Name  : factory_test
-* Description    : 板测指令处理
-* Input          : void
-* Output         : void
-* Return         : none
-********************************************************************************************/
-		
-void factory_test(void)
-{
-	txCanIdEx.target_id = canMasterId;
-	txCanIdEx.comm_type = CMD_MOTOR_STATE;
-	txCanIdEx.data2 = canId | (((uint16_t)*((uint8_t *)(&mtStatus)))<<8);
-	 
-	  
-	can_tx_buffer.data[0] = 0xAA;
-	can_tx_buffer.data[1] = 0x55;
-				 
-	can_tx_buffer.data[2] = 0x11; 
-	can_tx_buffer.data[3] = 0x22;
-				 
-	can_tx_buffer.data[4] = 0x33; 
-	can_tx_buffer.data[5] =0x44; 
-				
-	can_tx_buffer.data[6] = 0x55; 
-	can_tx_buffer.data[7] = 0x66;
-	 
-	can_txd();
-	
-}
-
-
-void CAN_SendResponse(uint8_t cmd_type, uint16_t host_id, uint8_t* data, uint8_t data_len) {
-    txCanIdEx.target_id = host_id;
-	txCanIdEx.comm_type = cmd_type;
-	txCanIdEx.data2 = canId | (((uint16_t)*((uint8_t *)(&mtStatus)))<<8);
-    memcpy(can_tx_buffer.data, data, data_len);
-    can_txd();
-}
-
-void read_SN(void)
-{
-	//反馈报文
-    CAN_SendResponse(CMD_WRITE_SN, canMasterId, NULL, 8);		  
-	
-	can_txd();
-}
-
-/********************************************************************************************
-* Function Name  : can_broadcast_devInfo
-* Description    : 广播自身信息
-* Input          : void
-* Output         : void
-* Return         : none
-********************************************************************************************/
-void can_broadcast_devInfo(void)
-{    
-    txCanIdEx.comm_type = CMD_GET_ID;
-    txCanIdEx.target_id   = CAN_ID_BROADCAST;
-    txCanIdEx.data2 = my_can_id;    
-    txCanIdEx.res  = 0;
-    
-    memcpy(can_tx_buffer.data,(const void*)UID_BASE,8); //设备ID
-    
-    can_txd();
-}
-
-
-void write_SN_flash(void)
-{
-    // 后续改为参数统一管理
-    uint8_t SN[8];
-
-    memcpy(SN, can_rx_buffer.data, 8);
-		
-    // 写入flash
-		
-    //反馈报文
-    CAN_SendResponse(CMD_WRITE_SN, canMasterId, SN, 8);
-
-}
-
-void send_SN_to_master(uint8_t flag)
-{
-	CAN_SendResponse(CMD_SET_ZERO, canMasterId, NULL, 8);
-}
-
-void send_version_to_master(uint8_t flag)
-{
-    // 编译报错：`array initializer must be an initializer list or string literal`
-    // 原因是 `uint8_t` 数组不能直接用字符串字面量初始化。
-    // 应使用 `char` 数组来初始化字符串字面量，然后将其指针转换为 `uint8_t*` 传递。
-    const char version_str[8] = SOFTWARE_VERSION; // 版本号，直接从宏定义字符串初始化
-
-    CAN_SendResponse(CMD_SEND_VERSION, canMasterId, (uint8_t*)version_str, 8); // 发送版本号的8个字节
-}
 
 
 // ====================== 中断回调函数 ======================
@@ -197,25 +461,6 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
         can_rx_buffer.ext_id.ext_id = rx_header.Identifier; // 保存完整ID
         can_rx_flag = 1;  // 触发主循环处理
     }
-}
-
-void can_message_transmit(FDCAN_HandleTypeDef *hfdcan, CanTxMsg *tx_msg) {
-    FDCAN_TxHeaderTypeDef tx_header;
-
-    tx_msg->ext_id.id_info.data2 = my_can_id;
-    tx_msg->ext_id.id_info.target_id = canMasterId| (((uint16_t)*((uint8_t *)(&mtStatus)))<<8);
-
-    // 填充帧头
-    tx_header.Identifier  = tx_msg->ext_id.ext_id;
-    tx_header.IdType      = FDCAN_EXTENDED_ID;
-    tx_header.TxFrameType = FDCAN_DATA_FRAME;
-    tx_header.DataLength  = FDCAN_DLC_BYTES_8;      // 数据长度（单位：字节）
-    tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-    tx_header.BitRateSwitch = FDCAN_BRS_OFF;
-    tx_header.FDFormat = FDCAN_CLASSIC_CAN;
-    tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
-    tx_header.MessageMarker = 0;  
-    HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &tx_header, tx_msg->data);
 }
 
 
@@ -655,6 +900,44 @@ void CAN_ProcessMessages(void) {
             // 主机下发的故障帧忽略（电机自身触发故障上报）
             break;
 
+        
+        // ---- 类型10：示波器/数据采集 ----
+        case CMD_SCOPE_DATA: {
+            /* subcmd in high byte of data2 */
+            uint8_t subcmd = (uint8_t)((rxCanIdEx.data2 >> 8) & 0xFFu);
+
+            if (subcmd == 0x00u) {
+                /* Set bandwidth/sample rate */
+                Scope_HandleSetBandwidth(rx_data);
+                static const uint8_t k_scope_ack[8] = {0xABu, 0xAAu, 0xA6u, 0x42u, 0x0Au, 0x1Au, 0x01u, 0x00u};
+                memcpy(resp_data, k_scope_ack, sizeof(k_scope_ack));
+                SendResponseCmdType0A(host_id, my_can_id, 0x00, resp_data);
+            } else if (subcmd == 0x02u) {
+                /* Start */
+                g_scope.running = 1u;
+                g_scope.enabled = 1u;
+                g_scope.sample_phase_acc = 0u;
+                g_scope.tx_in_progress = 0u;
+                g_scope.tx_frame_idx = 0u;
+                g_scope.tx_phase_acc = 0u;
+                SendResponseCmdType0A(host_id, my_can_id, 0x02, resp_data);
+            } else if (subcmd == 0x03u) {
+                /* Stop */
+                g_scope.running = 0u;
+                g_scope.tx_in_progress = 0u;
+                g_scope.tx_frame_idx = 0u;
+                g_scope.tx_phase_acc = 0u;
+                SendResponseCmdType0A(host_id, my_can_id, 0x03, resp_data);
+            } else {
+                /* Set variable IDs (supports up to 8 vars, multi-frame using start index 1/5) */
+                Scope_HandleSetVarIds(subcmd, rx_data);
+                subcmd = (uint8_t)(subcmd + 0x10u);
+                subcmd = (subcmd & 0xF0) | 0x01;  // 强制低半字节为 0x1
+                SendResponseCmdType0A(host_id, my_can_id, subcmd, resp_data);
+            }
+            break;
+        }
+
         default: // 未知指令处理
             // uint8_t err_code[2] = {0xFF, cmd_type};
             // CAN_SendResponse(cmd_type, host_id, err_code, 2); // 返回错误码
@@ -784,7 +1067,58 @@ void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id) {
     HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &tx_header, tx_data);
 }
 
-// 通讯类型0：响应帧（目标地址0xFE）
+// 通讯类型0A：示波器反馈（目标地址0xFE）
+
+void CAN_SendScopeData(uint16_t host_id, uint8_t motor_id, uint8_t status_subcmd, uint8_t* data)
+{
+    FDCAN_TxHeaderTypeDef tx_header;
+    CanIdUnion tx_id_union;
+
+    /* Build extended ID: comm_type=CMD_SCOPE_DATA, data2 = (status_subcmd<<8)|motor_id, target_id=host_id */
+    tx_id_union.id_info.comm_type = CMD_SCOPE_DATA;
+    tx_id_union.id_info.data2     = (uint16_t)(((uint16_t)status_subcmd << 8) | (uint16_t)motor_id);
+    tx_id_union.id_info.target_id = (uint8_t)host_id;
+    tx_id_union.id_info.res       = 0;
+
+    tx_header.Identifier = tx_id_union.ext_id;
+    tx_header.IdType = FDCAN_EXTENDED_ID;
+    tx_header.TxFrameType = FDCAN_DATA_FRAME;
+    tx_header.DataLength = FDCAN_DLC_BYTES_8;
+    tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    tx_header.BitRateSwitch = FDCAN_BRS_OFF;
+    tx_header.FDFormat = FDCAN_CLASSIC_CAN;
+    tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    tx_header.MessageMarker = 0;
+
+    /* Non-blocking enqueue */
+    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &tx_header, data);
+}
+
+void SendResponseCmdType0A(uint16_t host_id, uint8_t motor_id, uint8_t status_subcmd, uint8_t* data)
+{
+    FDCAN_TxHeaderTypeDef tx_header;
+    CanIdUnion tx_id_union;
+
+    /* Build extended ID: comm_type=CMD_SCOPE_DATA, data2 = (status_subcmd<<8)|motor_id, target_id=host_id */
+    tx_id_union.id_info.comm_type = CMD_SCOPE_DATA;
+    tx_id_union.id_info.data2     = (uint16_t)(((uint16_t)status_subcmd << 8) | (uint16_t)motor_id);
+    tx_id_union.id_info.target_id = (uint8_t)host_id;
+    tx_id_union.id_info.res       = 0;
+
+    tx_header.Identifier = tx_id_union.ext_id;
+    tx_header.IdType = FDCAN_EXTENDED_ID;
+    tx_header.TxFrameType = FDCAN_DATA_FRAME;
+    tx_header.DataLength = FDCAN_DLC_BYTES_8;
+    tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    tx_header.BitRateSwitch = FDCAN_BRS_OFF;
+    tx_header.FDFormat = FDCAN_CLASSIC_CAN;
+    tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    tx_header.MessageMarker = 0;
+
+    /* Non-blocking enqueue */
+    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &tx_header, data);
+}
+
 void CAN_SendResponseCmdType5(uint16_t host_id,uint8_t motor_id,uint8_t* data) {
     FDCAN_TxHeaderTypeDef tx_header;
     CanIdUnion tx_id_union;

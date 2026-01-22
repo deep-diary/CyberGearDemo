@@ -20,14 +20,23 @@
 #ifndef __CAN_INTERFACE_H
 #define __CAN_INTERFACE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
 
+#include <stdint.h>
+#include <stdbool.h>
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "math_ops.h"
 #include "param_manager.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* --- Scope / JScope compatible data acquisition --- */
+void CAN_Scope_Tick1kHz(void);
+
+/* User should override this to bind variable IDs to current values (size is 1/2/4 bytes). */
+bool Scope_ReadVarBytes(uint16_t id, uint8_t *out, uint8_t size);
 /* Exported constants --------------------------------------------------------*/
  #define P_MIN -12.5f
  #define P_MAX 12.5f 
@@ -137,7 +146,8 @@ typedef enum {
     CMD_CALI              = 5,   // 编码器标定
     CMD_SET_ZERO          = 6,   // 设置机械零位
     CMD_SET_CANID         = 7,   // 设置CAN ID
-    CMD_SET_ZERINGMODE    = 12,   // 切换回零模式
+    CMD_SCOPE_DATA        = 10,  // 示波器数据 (0x0A) - 修正为10
+    CMD_SET_ZERINGMODE    = 14,  // 切换回零模式
     CMD_READ_PARAM        = 17,  // 读取参数
     CMD_WRITE_PARAM       = 18,  // 写入参数
     CMD_SAVE_PARAM        = 19,  // 保存参数到Flash
@@ -195,8 +205,6 @@ typedef struct {
 #define txCanIdEx   (*((ExCanIdInfo*)&(can_tx_buffer.ext_id)))
 #define rxCanIdEx   (*((ExCanIdInfo*)&(can_rx_buffer.ext_id))) //将扩展帧id解析为自定义数据结构
 
-#define can_txd()   can_message_transmit(&hfdcan1, &can_tx_buffer)
-
 
 // 参数存储结构体（基于表格）
 typedef struct {
@@ -225,6 +233,8 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 void CAN_ProcessMessages(void);
 void CAN_SendResponseCmdType0(uint8_t host_id, uint8_t* data);
 void CAN_SendResponseCmdType2(uint16_t host_id,uint8_t motor_id);
+void CAN_SendScopeData(uint16_t host_id, uint8_t motor_id, uint8_t status_subcmd, uint8_t* data);
+void SendResponseCmdType0A(uint16_t host_id, uint8_t motor_id, uint8_t status_subcmd, uint8_t* data);
 void CAN_SendResponseCmdType5(uint16_t host_id,uint8_t motor_id,uint8_t* data);
 ParamWriteResult Write_Parameter(uint8_t data_bytes[8]);
 void can_message_transmit(FDCAN_HandleTypeDef *hfdcan, CanTxMsg *tx_msg);

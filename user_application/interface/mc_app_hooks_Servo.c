@@ -520,6 +520,8 @@ void MC_APP_LowFrequencyHook_M1(void)
 
 
   UserApplication_PreLowFrequencyUpdate(pCurrentTask);
+    /* CAN scope/data acquisition tick (1kHz) */
+  CAN_Scope_Tick1kHz();
   /* USER SECTION END PostMediumFrequencyHookM1 */
   #if DATALOGGER_TYPE == DATALOGGER_STMSTUDIO
   DumpTrace();
