@@ -50,6 +50,7 @@
 /* Extra Includes -------------------------------------------------------------*/
 #include "arm_math.h"
 #include "mc_app_hooks_servo.h"
+#include "mc_api.h"
 /* Private constants --------------------------------------------------------*/
 //#define UID_BASE 0x1FFF7590
 
@@ -837,7 +838,16 @@ void CAN_ProcessMessages(void) {
             CAN_SendResponseCmdType2(canMasterId, mymotorcanid); // 应答使能状态
 
             break;
-        // ---- 类型5：编码器标定复位 ----
+        // ---- type 0x14: emergency stop ----
+        case CMD_EMERGENCY_STOP:
+            motor_start = false;
+            FaultReset = true;
+            MC_StopMotor1();
+            MC_AcknowledgeFaultMotor1();
+            CAN_SendResponseCmdType2(host_id, mymotorcanid);
+            break;
+
+        // ---- type 5: encoder calibration ----
         case CMD_CALI:
             RequestedUserAppID = USER_APP_ENCODER_ALIGNMENT;
             EncoderAlignmentApp.flags.bits.Start = true;
