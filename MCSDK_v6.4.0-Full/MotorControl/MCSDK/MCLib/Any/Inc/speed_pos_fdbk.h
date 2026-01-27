@@ -60,6 +60,7 @@ typedef struct
                                            method. */
   int16_t hMecAngle;                  /*!< Instantaneous measure of rotor mechanical angle. */
   int32_t wMecAngle;                  /*!< Mechanical angle frame based on coefficient #bElToMecRatio. */
+  int32_t wMecAngleSetZeroCompen;     /*!< Mechanical angle frame zeroing value. */
   int16_t hAvrMecSpeedUnit;           /*!< Average mechanical speed expressed in the unit defined by
                                            [SPEED_UNIT](measurement_units.md). */
   int16_t hElSpeedDpp;                /*!< Instantaneous electrical speed expressed in Digit Per control Period

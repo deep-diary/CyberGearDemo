@@ -22,6 +22,8 @@ const ParamDesc_t g_param_desc[] = {
     {&ENCODER_M1.hAngleErrorCRC, 0, 65535, {PARAM_TYPE_UINT16, PARAM_ACCESS_READWRITE, 0}, {.u32 = 0}},
     {&ENCODER_M1.CalibrationCompletedFlag, 0, 1, {PARAM_TYPE_UINT8, PARAM_ACCESS_READWRITE, 0}, {.u32 = 0}},
     {&ENCODER_M1.iSCalibrationCompletedFlag, 0, 65535, {PARAM_TYPE_UINT16, PARAM_ACCESS_READWRITE, 0}, {.u32 = 0}},
+    {&ENCODER_M1._Super.wMecAngle, -2147483648, 2147483647, {PARAM_TYPE_INT32, PARAM_ACCESS_READWRITE, 0}, {.i32 = 0}},
+    {&ENCODER_M1._Super.wMecAngleSetZeroCompen, -2147483648, 2147483647, {PARAM_TYPE_INT32, PARAM_ACCESS_READWRITE, 0}, {.i32 = 0}},
 };
 
 
