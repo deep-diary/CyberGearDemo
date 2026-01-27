@@ -596,6 +596,8 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
 
                     case MODE_JOG:  // 临时转换
                         RequestedUserAppID = USER_APP_JOG;
+                        motor_start = false;
+                        MC_StopMotor1();
                         jog_cmd = data_bytes[5];
 
                         uint16_t jog_spd_data = data_bytes[6] << 8 | data_bytes[7];
