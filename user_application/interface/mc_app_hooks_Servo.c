@@ -505,6 +505,8 @@ void MC_APP_LowFrequencyHook_M1(void)
   /* 设置零点功能 */
   if (setZeroFlag == true) {
     /* 将Encoder._super.wmecangle设为0 */
+    int32_t zeroDelta = -ENCODER_M1._Super.wMecAngle;
+    ENCODER_M1._Super.wMecAngleSetZeroCompen += zeroDelta;
     ENCODER_M1._Super.wMecAngle = 0;
     
     /* 将PositionCtrolApp的PosRef设为0 */
@@ -513,6 +515,8 @@ void MC_APP_LowFrequencyHook_M1(void)
     PositionCtrolApp.SinRefOffset = 0;
     PositionProfileGenerator_PresetPosition(PositionCtrolApp.pPosGen, 0);
     PosCtrl_Reset(PositionCtrolApp._Super.pMCI->pPosCtrl);
+
+    ParamManager_RequestParamSaving();
 
     /* 清除设置零点标志位 */
     setZeroFlag = false;

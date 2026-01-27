@@ -151,6 +151,7 @@ typedef enum {
     CMD_READ_PARAM        = 17,  // 读取参数
     CMD_WRITE_PARAM       = 18,  // 写入参数
     CMD_SAVE_PARAM        = 19,  // 保存参数到Flash
+    CMD_EMERGENCY_STOP    = 20,  // emergency stop + clear faults (0x14)
     CMD_FAULT             = 21,  // 故障反馈
     CMD_WRITE_SN          = 22,  // 写入SN
     CMD_SEND_VERSION      = 23   // 发送版本号， 最多是32，因为是5位

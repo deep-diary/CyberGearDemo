@@ -50,6 +50,7 @@
 /* Extra Includes -------------------------------------------------------------*/
 #include "arm_math.h"
 #include "mc_app_hooks_servo.h"
+#include "mc_api.h"
 /* Private constants --------------------------------------------------------*/
 //#define UID_BASE 0x1FFF7590
 
@@ -595,6 +596,8 @@ ParamWriteResult Write_Parameter(uint8_t data_bytes[8]) {
 
                     case MODE_JOG:  // 临时转换
                         RequestedUserAppID = USER_APP_JOG;
+                        motor_start = false;
+                        MC_StopMotor1();
                         jog_cmd = data_bytes[5];
 
                         uint16_t jog_spd_data = data_bytes[6] << 8 | data_bytes[7];
@@ -837,7 +840,16 @@ void CAN_ProcessMessages(void) {
             CAN_SendResponseCmdType2(canMasterId, mymotorcanid); // 应答使能状态
 
             break;
-        // ---- 类型5：编码器标定复位 ----
+        // ---- type 0x14: emergency stop ----
+        case CMD_EMERGENCY_STOP:
+            motor_start = false;
+            FaultReset = true;
+            MC_StopMotor1();
+            MC_AcknowledgeFaultMotor1();
+            CAN_SendResponseCmdType2(host_id, mymotorcanid);
+            break;
+
+        // ---- type 5: encoder calibration ----
         case CMD_CALI:
             RequestedUserAppID = USER_APP_ENCODER_ALIGNMENT;
             EncoderAlignmentApp.flags.bits.Start = true;
