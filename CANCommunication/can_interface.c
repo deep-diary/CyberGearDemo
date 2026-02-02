@@ -51,6 +51,7 @@
 #include "arm_math.h"
 #include "mc_app_hooks_servo.h"
 #include "mc_api.h"
+#include "mc_config_common.h"
 /* Private constants --------------------------------------------------------*/
 //#define UID_BASE 0x1FFF7590
 
@@ -89,6 +90,8 @@ struct motoStatus mtStatus;
  *   1 sample may be split into multiple CAN frames.
  *   First frame of each sample includes timestamp16 at Byte0-1 (HAL_GetTick()&0xFFFF).
  *   Continuation frames contain only data bytes (no timestamp).
+ *   TX subcmd carries frame index: subcmd = ((frame_idx & 0x0F) << 4) | 0x02
+ *     frame0 -> 0x02, frame1 -> 0x12, frame2 -> 0x22, ...
  *   Variable bytes are packed strictly in the order configured by the host.
  *   Types/sizes:
  *     uint8/int8 : 1 byte
@@ -116,7 +119,7 @@ typedef struct {
     uint8_t  size; /* bytes: 1/2/4 */
 } ScopeVarDesc;
 
-/* ID descriptor table (from host parameter table screenshots, 0x2000~0x2019). */
+/* ID descriptor table (from host parameter table screenshots, 0x2000~0x2019 and 0x3000~0x302F). */
 static const ScopeVarDesc g_scope_desc_tbl[] = {
     {0x2000u, SCOPE_VT_U16, 2u}, /* echoPara1 */
     {0x2001u, SCOPE_VT_U16, 2u}, /* echoPara2 */
@@ -144,6 +147,55 @@ static const ScopeVarDesc g_scope_desc_tbl[] = {
     {0x2017u, SCOPE_VT_F32, 4u}, /* spd_filt_gain */
     {0x2018u, SCOPE_VT_F32, 4u}, /* Limit_spd */
     {0x2019u, SCOPE_VT_F32, 4u}, /* limit_cur */
+
+    {0x3000u, SCOPE_VT_U16, 2u}, /* timeUse0 */
+    {0x3001u, SCOPE_VT_U16, 2u}, /* timeUse1 */
+    {0x3002u, SCOPE_VT_U16, 2u}, /* timeUse2 */
+    {0x3003u, SCOPE_VT_U16, 2u}, /* timeUse3 */
+    {0x3004u, SCOPE_VT_I16, 2u}, /* encoderRaw */
+    {0x3005u, SCOPE_VT_I16, 2u}, /* mcuTemp */
+    {0x3006u, SCOPE_VT_I16, 2u}, /* motorTemp */
+    {0x3007u, SCOPE_VT_U16, 2u}, /* vBus_mv */
+    {0x3008u, SCOPE_VT_I32, 4u}, /* adc1Offset */
+    {0x3009u, SCOPE_VT_I32, 4u}, /* adc2Offset */
+    {0x300Au, SCOPE_VT_U16, 2u}, /* adc1Raw */
+    {0x300Bu, SCOPE_VT_U16, 2u}, /* adc2Raw */
+    {0x300Cu, SCOPE_VT_F32, 4u}, /* VBUS */
+    {0x300Du, SCOPE_VT_F32, 4u}, /* cmdId */
+    {0x300Eu, SCOPE_VT_F32, 4u}, /* cmdIq */
+    {0x300Fu, SCOPE_VT_F32, 4u}, /* cmdLocRef */
+    {0x3010u, SCOPE_VT_F32, 4u}, /* cmdSpdRef */
+    {0x3011u, SCOPE_VT_F32, 4u}, /* cmdTorque */
+    {0x3012u, SCOPE_VT_F32, 4u}, /* cmdPos */
+    {0x3013u, SCOPE_VT_F32, 4u}, /* cmdVel */
+    {0x3014u, SCOPE_VT_I16, 2u}, /* rotation */
+    {0x3015u, SCOPE_VT_F32, 4u}, /* modPos */
+    {0x3016u, SCOPE_VT_F32, 4u}, /* mechPos */
+    {0x3017u, SCOPE_VT_F32, 4u}, /* mechVel */
+    {0x3018u, SCOPE_VT_F32, 4u}, /* elecPos */
+    {0x3019u, SCOPE_VT_F32, 4u}, /* ia */
+    {0x301Au, SCOPE_VT_F32, 4u}, /* ib */
+    {0x301Bu, SCOPE_VT_F32, 4u}, /* ic */
+    {0x301Cu, SCOPE_VT_U32, 4u}, /* tick */
+    {0x301Du, SCOPE_VT_U8,  1u}, /* phaseOrder */
+    {0x301Eu, SCOPE_VT_F32, 4u}, /* iqf */
+    {0x301Fu, SCOPE_VT_I16, 2u}, /* boardTemp */
+    {0x3020u, SCOPE_VT_F32, 4u}, /* iq */
+    {0x3021u, SCOPE_VT_F32, 4u}, /* id */
+    {0x3022u, SCOPE_VT_U32, 4u}, /* faultSta */
+    {0x3023u, SCOPE_VT_U32, 4u}, /* warnSta */
+    {0x3024u, SCOPE_VT_U16, 2u}, /* drv_fault */
+    {0x3025u, SCOPE_VT_I16, 2u}, /* drv_temp */
+    {0x3026u, SCOPE_VT_F32, 4u}, /* Uq */
+    {0x3027u, SCOPE_VT_F32, 4u}, /* Ud */
+    {0x3028u, SCOPE_VT_F32, 4u}, /* dtc_u */
+    {0x3029u, SCOPE_VT_F32, 4u}, /* dtc_v */
+    {0x302Au, SCOPE_VT_F32, 4u}, /* dtc_w */
+    {0x302Bu, SCOPE_VT_F32, 4u}, /* v_bus */
+    {0x302Cu, SCOPE_VT_F32, 4u}, /* v_ref */
+    {0x302Du, SCOPE_VT_F32, 4u}, /* torque_fdb */
+    {0x302Eu, SCOPE_VT_F32, 4u}, /* rated_i */
+    {0x302Fu, SCOPE_VT_F32, 4u}, /* limit_i */
 };
 
 typedef struct {
@@ -175,8 +227,75 @@ ScopeState g_scope = {0};
 
 bool Scope_ReadVarBytes(uint16_t id, uint8_t *out, uint8_t size)
 {
-    /* User should override this function in application to bind real variables. */
-    (void)id;
+    if ((out == NULL) || (size == 0u)) {
+        return false;
+    }
+
+    switch (id) {
+    case 0x200Au: { /* CAN_ID */
+        uint8_t v = my_can_id;
+        if (size != sizeof(v)) {
+            return false;
+        }
+        memcpy(out, &v, sizeof(v));
+        return true;
+    }
+
+    case 0x200Du: { /* motorOverTemp */
+        int16_t v = (int16_t)TempSensor_M1.hOverTempThreshold;
+        if (size != sizeof(v)) {
+            return false;
+        }
+        memcpy(out, &v, sizeof(v));
+        return true;
+    }
+
+    case 0x3007u: { /* vBus(mV), uint16 */
+        BusVoltageSensor_Handle_t* pVbs = &BusVoltageSensor_M1._Super;
+        uint16_t v = VBS_GetAvBusVoltage_V(pVbs);
+        uint32_t mv32 = (uint32_t)v * 1000u;
+        uint16_t mv = (mv32 > 65535u) ? 65535u : (uint16_t)mv32;
+        if (size != sizeof(mv)) {
+            return false;
+        }
+        memcpy(out, &mv, sizeof(mv));
+        return true;
+    }
+
+    case 0x300Cu: /* VBUS, float */
+    case 0x302Bu: { /* v_bus, float */
+        BusVoltageSensor_Handle_t* pVbs = &BusVoltageSensor_M1._Super;
+        float v = (float)VBS_GetAvBusVoltage_V(pVbs);
+        if (size != sizeof(v)) {
+            return false;
+        }
+        memcpy(out, &v, sizeof(v));
+        return true;
+    }
+
+    case 0x3016u: { /* mechPos, rad */
+        float v = (float)ENCODER_M1._Super.wMecAngle * POS_FACTOR;
+        if (size != sizeof(v)) {
+            return false;
+        }
+        memcpy(out, &v, sizeof(v));
+        return true;
+    }
+
+    case 0x3017u: { /* mechVel, rad/s */
+        float v = (float)ENCODER_M1._Super.hAvrMecSpeedUnit * SPD_FACTOR;
+        if (size != sizeof(v)) {
+            return false;
+        }
+        memcpy(out, &v, sizeof(v));
+        return true;
+    }
+
+    default:
+        break;
+    }
+
+    /* Not bound yet: return 0 with false so caller can decide how to handle it. */
     if (out && size) {
         memset(out, 0, size);
     }
@@ -194,12 +313,14 @@ static uint8_t Scope_GetSizeById(uint16_t id)
     return 4u;
 }
 
-static void Scope_SendFrame(const uint8_t payload[8])
+static void Scope_SendFrame(const uint8_t payload[8], uint8_t frame_idx)
 {
     uint8_t data[8];
+    uint8_t status_subcmd;
     memcpy(data, payload, 8u);
-    /* status_subcmd = 0x02 indicates scope streaming data */
-    CAN_SendScopeData((uint16_t)canMasterId, (uint8_t)my_can_id, 0x02u, data);
+    /* Encode frame index in high nibble for host-side reassembly. */
+    status_subcmd = (uint8_t)((uint8_t)((frame_idx & 0x0Fu) << 4) | 0x02u);
+    CAN_SendScopeData((uint16_t)canMasterId, (uint8_t)my_can_id, status_subcmd, data);
 }
 
 static void Scope_RecomputePlan(void)
@@ -336,7 +457,7 @@ static void Scope_SendFrameByIndex(uint8_t frame_idx)
         memcpy(&payload[0], &g_scope.sample_buf[off], copy);
     }
 
-    Scope_SendFrame(payload);
+    Scope_SendFrame(payload, frame_idx);
 }
 
 
